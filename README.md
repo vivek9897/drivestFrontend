@@ -1,84 +1,84 @@
-# Route Master Mobile (React Native / Expo)
+# Drivest Mobile (RouteMaster Frontend)
 
-Duolingo-style progress + Waze-style navigation for driving test routes. Connects to the NestJS backend in `../backend`.
+Drivest is the RouteMaster mobile client for driving test route discovery, practice navigation, and study tools. It connects to the NestJS backend in `../backend` and ships as an Expo / React Native app.
 
-## Stack
-- Expo SDK 54 (TypeScript)
+## Product features
+- Auth with email/password, guest mode, and device ID registration.
+- Onboarding with consent capture (terms, age, analytics, notifications, location).
+- Explore test centres with search and "near me" location lookup.
+- Route details with Mapbox previews, access gating, and offline download.
+- Practice navigation with Mapbox GL; native Mapbox Navigation SDK when available; JS fallback with map matching, localization, and voice prompts.
+- Maneuver practice (parallel parking) with animated steps and audio guidance.
+- Road sign study cards with category filters and optional hosted images.
+- Cashback tracking workflow with GPX capture and submission.
+- My Routes dashboard with downloaded and active-access filters.
+- Settings for profile updates, subscriptions, push opt-in, legal docs, and diagnostics log export.
+- Admin dashboard (role gated) for GPX route uploads and centre stats.
+
+## Tech stack
+- Expo SDK 54, React Native 0.81, TypeScript
 - React Navigation (native stack + bottom tabs)
-- React Query for server state
-- react-hook-form + zod for forms
-- AsyncStorage + expo-sqlite for auth token & offline cache
-- react-native-maps for map UI (Mapbox plugin configured, but maps fallback works without offline packs)
-- RevenueCat purchases via `react-native-purchases`
-- Expo Location for tracking
+- React Query for API state
+- React Hook Form + Zod for forms
+- React Native Paper UI + Expo Vector Icons
+- Mapbox GL (`@rnmapbox/maps`) and Mapbox APIs
+- Expo Location, Notifications, Speech, SQLite, Secure Store, File System, Sharing
+- RevenueCat purchases (`react-native-purchases` + UI)
+- Sentry for crash/perf monitoring
+- Jest + ts-jest for tests
+
+## Architecture
+- `frontend/src/navigation`: stack + tab navigation, onboarding gate
+- `frontend/src/screens`: Explore, Practice, Road Signs, Cashback, Settings, Admin, Auth
+- `frontend/src/lib`: Mapbox/Google routing, RevenueCat, Sentry, notifications, logging
+- `frontend/src/db`: offline storage for routes, stats, and sessions
+- `frontend/src/content`: legal docs, maneuvers, road sign data
+- `frontend/src/components`: shared UI and map overlays
+
+## Maps & navigation
+- Mapbox GL renders maps in Explore and Practice flows.
+- If the native Mapbox Navigation SDK view (`DrivestNavigationView`) is present, practice uses it for turn-by-turn UI.
+- Fallback navigation builds a nav package via Mapbox Map Matching, localizes GPS to the route, and drives banner/voice prompts with a custom instruction engine.
+- Map Matching results are cached in memory and AsyncStorage to reduce API calls.
+- Reroute-to-start uses Google Directions when a key is configured.
+- Car puck supports a 3D model (`frontend/assets/models/car.glb`) with a 2D icon fallback (`frontend/assets/icons/car.png`).
+
+## Offline & storage
+- Downloaded routes, route stats, and queued practice sessions live in SQLite (`routemaster.db`).
+- Auth tokens, guest mode, and consent state use AsyncStorage.
+- Device IDs are persisted via Secure Store on mobile and AsyncStorage on web.
+
+## Observability & diagnostics
+- Sentry initializes after login to capture crashes and performance.
+- `initAppLogger()` captures console output to a local log file; logs can be exported or cleared from Settings.
+
+## Environment variables
+Copy `frontend/.env.example` to `.env` and update:
+- `EXPO_PUBLIC_API_URL` - backend base URL.
+- `EXPO_PUBLIC_MAPBOX_TOKEN` - Mapbox public token (maps + Directions/Matching).
+- `EXPO_PUBLIC_MAPBOX_DOWNLOAD_TOKEN` - Mapbox secret token (offline downloads, if enabled).
+- `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` - Google Directions API key for reroute-to-start.
+- `EXPO_PUBLIC_REVCAT_API_KEY` - RevenueCat API key.
+- `EXPO_PUBLIC_ROADSIGNS_BASE_URL` - base URL for road sign images (optional; otherwise placeholders).
+- `EXPO_PUBLIC_SENTRY_DSN` - Sentry DSN.
+- `EXPO_PUBLIC_SENTRY_ENV` - Sentry environment label.
 
 ## Setup
-1. Install deps
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Copy env
-   ```bash
-   cp .env.example .env
-   # Set EXPO_PUBLIC_API_URL to your backend (e.g., http://localhost:3000)
-   # Add Mapbox tokens if using Mapbox, else leave blank for react-native-maps
-   # Set EXPO_PUBLIC_REVCAT_API_KEY from RevenueCat
-   ```
-3. Start dev server
-   ```bash
-   npx expo start
-   ```
-4. iOS/Android: open Expo Go or simulator. Location permissions are required for "Near me", practice, and cashback.
+1. `cd frontend`
+2. `npm install`
+3. `cp .env.example .env` and set values.
+4. `npm start`
+
+### Native modules
+Mapbox, RevenueCat, and the custom Mapbox Navigation SDK view require a dev client or EAS build; Expo Go runs with reduced functionality.
+
+## Scripts
+- `npm start` - Expo dev server
+- `npm run ios` - iOS simulator / device
+- `npm run android` - Android emulator / device
+- `npm run web` - web preview
+- `npm test` - Jest tests
 
 ## Permissions
-- Foreground location (practice, cashback, near-me search)
-- Background location if you enable background tracking (Expo Location configured).
-
-## Key Flows
-- **Splash**: boots auth token, init RevenueCat, creates SQLite tables.
-- **Auth**: email/password login + register. JWT stored in AsyncStorage.
-- **Explore**: search centres, near-me, weekly goal cards. Open centre to see routes and buy centre pack.
-- **Centre Detail**: map preview, buy/restore purchases, list routes with lock badges.
-- **Route Detail**: download for offline (SQLite) and start practice.
-- **Practice**: map-first, route polyline, live position, start/pause/finish; saves stats cache + posts finish to backend.
-- **My Routes**: grouped by centre, filters for downloaded/active access, shows stats and offline badge.
-- **Cashback**: once-per-lifetime flow with tracking + submit to backend.
-- **Settings**: profile edit, entitlements list, restore purchases, delete account (calls backend).
-
-## Offline
-- Downloaded routes stored in `downloaded_routes` SQLite table.
-- Route stats and queued sessions cached; practice can be started offline and synced later (basic queue storage).
-
-## Testing
-```bash
-npm test
-```
-(Jest + jest-expo; includes util + screen smoke tests.)
-
-## Mapbox
-App config reads `EXPO_PUBLIC_MAPBOX_TOKEN` (public) and `EXPO_PUBLIC_MAPBOX_DOWNLOAD_TOKEN` (secret) from `.env`. If you add a Mapbox build/native module later, these will be available via `Constants.expoConfig?.extra`. Without Mapbox the app falls back to `react-native-maps` polylines.
-
-### Map Matching Fallback Navigation
-When the native Mapbox Navigation SDK UI is unavailable, the app uses a JS fallback that:
-- Calls the Mapbox Map Matching API for GPX routes. We always set `waypoints=0;{lastIndex}` so only the start/finish are treated as waypoints (otherwise every coordinate becomes a waypoint and causes repeated arrivals).
-- Downsamples GPX points by distance, chunks to respect the 100-coordinate limit, and stitches geometries/steps into a single NavPackage.
-- Uses a forward-only localizer and instruction engine to keep voice/banner instructions aligned on looped routes.
-
-Tuning knobs live in `frontend/src/navigation/mapboxMatching.ts` (downsample meters, radiuses, chunk overlap) and `frontend/src/navigation/routeLocalization.ts` (window sizes, off-route threshold).
-Map Matching is billable per request; caching is enabled to reduce calls.
-
-### CarPuck (Fallback JS Only)
-The fallback navigation uses a Waze-style car puck that follows the snapped route position and a stabilized route bearing.
-- **3D model (preferred):** place a GLB at `frontend/assets/models/car.glb`
-- **2D fallback:** icon at `frontend/assets/icons/Car.png`
-- The puck uses a ModelLayer if supported; otherwise it falls back to a SymbolLayer.
-- Bearing comes from route geometry (not device compass) and is smoothed for stability.
-- Toggle 3D in `frontend/src/screens/Practice/PracticeScreen.tsx` via `use3DCar`.
-
-Performance tips: keep the GLB low poly, small textures, and avoid complex animations.
-
-## Assumptions
-- Backend JWT auth endpoints from the provided NestJS app.
-- RevenueCat products configured with same IDs as backend products.
-- Expo Go acceptable for dev; production build should use EAS with native modules for purchases/maps.
+- Foreground location for "near me", navigation, and cashback tracking.
+- Notifications for learning reminders (opt-in).
