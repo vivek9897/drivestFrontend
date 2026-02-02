@@ -36,8 +36,9 @@ export type RouteDto = {
   distanceM: number;
   durationEstS: number;
   difficulty: string;
-  polyline: string;
-  bbox: any;
+  coordinates?: Array<{lat: number; lon: number}> | Array<[number, number]>;
+  polyline?: string;
+  bbox?: any;
   geojson?: any;
   gpx?: string | null;
   payload?: any;

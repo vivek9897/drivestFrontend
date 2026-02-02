@@ -75,9 +75,39 @@ export const coordsFromGpx = (gpx?: string | null): { latitude: number; longitud
 };
 
 export const getRouteCoords = (route: any): { latitude: number; longitude: number }[] => {
+  // Priority 1: New coordinates format [{lat, lon}, ...] or [[lon, lat], ...]
+  if (route?.coordinates && Array.isArray(route.coordinates) && route.coordinates.length > 0) {
+    const firstCoord = route.coordinates[0];
+    // Handle {lat, lon} format
+    if (typeof firstCoord === 'object' && 'lat' in firstCoord) {
+      return route.coordinates
+        .filter((c: any) => c && typeof c === 'object' && 'lat' in c && 'lon' in c)
+        .map((c: any) => ({
+          latitude: Number(c.lat),
+          longitude: Number(c.lon),
+        }))
+        .filter((c) => !Number.isNaN(c.latitude) && !Number.isNaN(c.longitude));
+    }
+    // Handle [lon, lat] format
+    if (Array.isArray(firstCoord) && firstCoord.length >= 2) {
+      return route.coordinates
+        .filter((c: any) => Array.isArray(c) && c.length >= 2)
+        .map((c: any) => ({
+          latitude: Number(c[1]),
+          longitude: Number(c[0]),
+        }))
+        .filter((c) => !Number.isNaN(c.latitude) && !Number.isNaN(c.longitude));
+    }
+  }
+
+  // Priority 2: GeoJSON
   const fromGeo = coordsFromGeoJson(route?.geojson);
   if (fromGeo.length) return fromGeo;
+
+  // Priority 3: GPX
   const fromGpx = coordsFromGpx(route?.gpx);
   if (fromGpx.length) return fromGpx;
+
+  // Priority 4: Polyline (legacy, backward compatible)
   return decodePolyline(route?.polyline || '');
 };
