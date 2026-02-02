@@ -6,6 +6,9 @@ import { apiAdmin, apiCentres } from '../../api';
 import { spacing, colors } from '../../styles/theme';
 import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MapboxSearchBox } from '../../components/MapboxSearchBox';
+import { SearchResult } from '../../types/mapbox';
+import { isUKLocation, extractPostcode } from '../../utils/mapbox';
 
 const AdminDashboardScreen: React.FC = () => {
   const qc = useQueryClient();
@@ -17,6 +20,8 @@ const AdminDashboardScreen: React.FC = () => {
   const [centres, setCentres] = useState<any[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [addressPreview, setAddressPreview] = useState<string | null>(null);
+  const [showAddressInput, setShowAddressInput] = useState(false);
 
   useEffect(() => {
     apiAdmin
@@ -32,6 +37,36 @@ const AdminDashboardScreen: React.FC = () => {
       .catch(() => setCentres([]));
   }, []);
   const totalCentres = useMemo(() => centres.length, [centres]);
+
+  /**
+   * Handle location selection from MapboxSearchBox
+   * Auto-fills centre name and postcode, validates UK location
+   */
+  const handleAddressSelect = (result: SearchResult) => {
+    const [longitude, latitude] = result.center;
+
+    // Validate UK location
+    if (!isUKLocation(longitude, latitude)) {
+      setToast('Selected location is outside the UK. Please select a UK test centre.');
+      setAddressPreview(null);
+      return;
+    }
+
+    // Extract and set postcode
+    const extractedPostcode =
+      result.postcode || extractPostcode(result.place_name);
+    if (extractedPostcode) {
+      setPostcode(extractedPostcode);
+    }
+
+    // Set centre name from result
+    setCentreName(result.text || result.place_name);
+
+    // Display address preview
+    setAddressPreview(result.place_name);
+    setShowAddressInput(false);
+    setToast('Address autofilled successfully.');
+  };
 
   const pickAndUpload = async () => {
     if (!centreId && !centreName.trim()) {
@@ -113,6 +148,35 @@ const AdminDashboardScreen: React.FC = () => {
               </View>
             ))}
           </RadioButton.Group>
+          <Divider style={{ marginVertical: spacing(1.5) }} />
+          <Text variant="labelLarge" style={{ marginBottom: spacing(0.5) }}>
+            Or create new test centre
+          </Text>
+          {!showAddressInput ? (
+            <Button
+              mode="outlined"
+              onPress={() => setShowAddressInput(true)}
+              icon="magnify"
+              style={{ marginBottom: spacing(1.5) }}
+            >
+              Search Address
+            </Button>
+          ) : (
+            <>
+              <MapboxSearchBox
+                onSelectLocation={handleAddressSelect}
+                placeholder="Search UK test centre address"
+                label="Centre Address"
+              />
+              {addressPreview && (
+                <Card style={{ marginTop: spacing(1), backgroundColor: '#f0f8ff', padding: spacing(1.5) }}>
+                  <Text variant="bodySmall" style={{ color: colors.primary }}>
+                    ✓ Selected: {addressPreview}
+                  </Text>
+                </Card>
+              )}
+            </>
+          )}
           <TextInput
             label="New centre name (required if not selected)"
             value={centreName}

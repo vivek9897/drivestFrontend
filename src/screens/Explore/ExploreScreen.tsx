@@ -5,11 +5,13 @@ import { TextInput, Button, Text, SegmentedButtons, Card } from 'react-native-pa
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import CentreCard from '../../components/CentreCard';
+import { MapboxSearchBox } from '../../components/MapboxSearchBox';
 import { apiCentres, TestCentre } from '../../api';
 import { spacing, colors } from '../../styles/theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import LocationConsentModal from '../../components/LocationConsentModal';
 import { CONSENT_KEYS, consentNow, getConsentValue, setConsentValue } from '../../utils/consent';
+import { SearchResult } from '../../types/mapbox';
 
 const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) => {
   const [input, setInput] = useState('');
@@ -18,6 +20,8 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
   const [goalChoice, setGoalChoice] = useState('1');
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [pendingNear, setPendingNear] = useState(false);
+  const [userLocation, setUserLocation] = useState<[number, number] | undefined>();
+
   const centresQuery = useQuery<TestCentre[]>({
     queryKey: ['centres', query, near],
     queryFn: async () => {
@@ -27,6 +31,18 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
     },
     placeholderData: keepPreviousData,
   });
+
+  /**
+   * Handle location selection from MapboxSearchBox
+   * Extracts coordinates and searches for nearby centres
+   */
+  const handleMapboxLocationSelect = (result: SearchResult) => {
+    const [longitude, latitude] = result.center;
+    setInput(result.place_name);
+    setQuery(result.place_name);
+    setNear(`${latitude},${longitude}`);
+    setUserLocation([longitude, latitude]);
+  };
 
   const handleNearMe = async () => {
     const choice = await getConsentValue(CONSENT_KEYS.locationChoice);
@@ -39,6 +55,7 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
     if (perm.status !== 'granted') return;
     const loc = await Location.getCurrentPositionAsync({ accuracy: 3 });
     setNear(`${loc.coords.latitude},${loc.coords.longitude}`);
+    setUserLocation([loc.coords.longitude, loc.coords.latitude]);
   };
 
   return (
@@ -54,17 +71,14 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
         </Card>
 
         <View style={styles.searchCard}>
-          <TextInput
+          <MapboxSearchBox
+            onSelectLocation={handleMapboxLocationSelect}
             placeholder="Search by postcode, city, centre name"
-            value={input}
-            onChangeText={setInput}
-            mode="outlined"
-            right={<TextInput.Icon icon="magnify" onPress={() => setQuery(input.trim())} />}
-            style={{ marginBottom: spacing(1) }}
-            returnKeyType="search"
-            onSubmitEditing={() => setQuery(input.trim())}
+            label="Find test centre"
+            initialValue={input}
+            proximity={userLocation}
           />
-          <Button mode="contained" onPress={handleNearMe}>
+          <Button mode="contained" onPress={handleNearMe} style={{ marginTop: spacing(1.5) }}>
             Near me
           </Button>
         </View>
@@ -106,6 +120,7 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
             setPendingNear(false);
             const loc = await Location.getCurrentPositionAsync({ accuracy: 3 });
             setNear(`${loc.coords.latitude},${loc.coords.longitude}`);
+            setUserLocation([loc.coords.longitude, loc.coords.latitude]);
           }
         }}
         onSkip={async () => {

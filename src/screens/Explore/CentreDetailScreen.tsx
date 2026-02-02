@@ -13,6 +13,7 @@ import { Alert } from 'react-native';
 import { openCustomerCenter, presentPaywall, restore } from '../../lib/revenuecat';
 import { legalDocs } from '../../content/legal';
 import { useAuth } from '../../context/AuthContext';
+import { reverseGeocode } from '../../lib/mapboxSearch';
 
 const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navigation }) => {
   const { guest } = useAuth();
@@ -44,6 +45,29 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
   });
   const [paywall, setPaywall] = React.useState(false);
   const [showPayments, setShowPayments] = React.useState(false);
+  const [address, setAddress] = React.useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = React.useState(false);
+
+  /**
+   * Fetch address from coordinates on mount
+   */
+  React.useEffect(() => {
+    const fetchAddress = async () => {
+      if (!centre?.lat || !centre?.lng) return;
+      try {
+        setAddressLoading(true);
+        const result = await reverseGeocode(centre.lng, centre.lat);
+        setAddress(result.address || result.place_name);
+      } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        // Fallback to using postcode if reverse geocoding fails
+        setAddress(centre.postcode ? `${centre.postcode}, ${centre.city}` : centre.city);
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+    fetchAddress();
+  }, [centre]);
 
   const canAccess = hasAccessToCentre(entitlements.data, centre.id);
 
@@ -70,7 +94,11 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
           <View style={styles.heroHeader}>
             <View style={{ flex: 1 }}>
               <Text variant="headlineSmall">{centre.name}</Text>
-              <Text style={{ color: colors.muted }}>{centre.postcode} • {centre.city}</Text>
+              {addressLoading ? (
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing(0.5) }} />
+              ) : (
+                <Text style={{ color: colors.muted }}>{address || centre.postcode} • {centre.city}</Text>
+              )}
             </View>
             <Chip style={[styles.pill, { backgroundColor: canAccess ? '#e0f7e9' : '#fdecea' }]} textStyle={{ color: canAccess ? '#0f7b32' : '#b12a2a' }}>
               {canAccess ? 'Unlocked' : 'Locked'}

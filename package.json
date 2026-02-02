@@ -13,6 +13,8 @@
   "dependencies": {
     "@expo/vector-icons": "15.0.3",
     "@hookform/resolvers": "^3.9.0",
+    "@mapbox/mapbox-sdk": "^0.16.0",
+    "@mapbox/search-js-core": "^1.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.17",
@@ -54,6 +56,7 @@
     "react-native-svg": "15.12.1",
     "react-native-tts": "^4.1.1",
     "react-native-worklets": "0.5.1",
+    "uuid": "^9.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
