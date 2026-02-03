@@ -8,7 +8,8 @@
     "android:release": "NODE_ENV=production SENTRY_ALLOW_FAILURE=true (cd android && ./gradlew assembleRelease)",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest"
+    "test": "jest",
+    "generate:icon": "node generate-icon.js"
   },
   "dependencies": {
     "@expo/vector-icons": "15.0.3",
@@ -70,12 +71,12 @@
     "jest": "^29.7.0",
     "jest-expo": "~54.0.3",
     "react-test-renderer": "19.1.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.1.1",
     "typescript": "~5.9.2",
     "xlsx": "^0.18.5"
   },
-  "private": true
-  ,
+  "private": true,
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
