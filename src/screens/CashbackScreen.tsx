@@ -127,45 +127,110 @@ const CashbackScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={{ padding: spacing(3) }}>
-        <Card style={{ borderRadius: 16, marginBottom: spacing(2) }}>
-          <Card.Content>
-            <Text variant="titleLarge">Earn £2 cashback</Text>
-            <Text style={{ color: colors.muted, marginTop: spacing(1) }}>
-              • Drive your test centre route and help improve route quality for the community. Receive a one time £2 cashback.
-        
+      <ScrollView contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(3), paddingBottom: spacing(4) }}>
+        <Card style={{ borderRadius: 18, marginBottom: spacing(3), elevation: 2, borderColor: colors.border, borderWidth: 1 }}>
+          <Card.Content style={{ paddingVertical: spacing(2.5), paddingHorizontal: spacing(2.5) }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: '700',
+                color: colors.text,
+                marginBottom: spacing(1),
+              }}
+            >
+              💰 Earn £2 Cashback
             </Text>
-            <Text style={{ marginTop: spacing(1) }}>Status: {status}</Text>
-            <ProgressBar progress={status === 'APPROVED' ? 1 : status === 'PENDING' ? 0.5 : 0.1} color={colors.primary} style={{ marginVertical: spacing(1) }} />
+            <Text style={{ color: colors.textSecondary, marginTop: spacing(1), lineHeight: 22, fontSize: 14 }}>
+              Drive your test centre route to help improve our route library. Receive a one-time £2 cashback when approved.
+            </Text>
+            <View style={{ marginTop: spacing(2), paddingTop: spacing(2), borderTopColor: colors.border, borderTopWidth: 1 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(1) }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>Claim Status</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '700',
+                    color:
+                      status === 'APPROVED'
+                        ? colors.success
+                        : status === 'PENDING'
+                          ? colors.warning
+                          : colors.error,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {status}
+                </Text>
+              </View>
+              <ProgressBar
+                progress={status === 'APPROVED' ? 1 : status === 'PENDING' ? 0.5 : 0.1}
+                color={colors.primary}
+                style={{ marginTop: spacing(1), height: 6, borderRadius: 3 }}
+              />
+            </View>
           </Card.Content>
         </Card>
 
-        <Card style={{ borderRadius: 16, marginBottom: spacing(2) }}>
-          <Card.Content>
-            <Text variant="titleMedium">1) Choose your test date and time. We send a reminder shortly before your drive.</Text>
+        <Card style={{ borderRadius: 18, marginBottom: spacing(3), elevation: 2, borderColor: colors.border, borderWidth: 1 }}>
+          <Card.Content style={{ paddingVertical: spacing(2.5), paddingHorizontal: spacing(2.5) }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                color: colors.text,
+                marginBottom: spacing(1),
+              }}
+            >
+              1. Select Test Centre
+            </Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing(1.5), fontSize: 13 }}>
+              Choose the test centre you'll be driving
+            </Text>
             <RadioButton.Group onValueChange={(v) => setCentreId(v)} value={centreId || ''}>
               {centres.map((c: any) => (
                 <View key={c.id} style={styles.radioRow}>
                   <RadioButton value={c.id} />
-                  <Text style={styles.radioLabel}>{`${c.name} (${c.city})`}</Text>
+                  <Text
+                    style={{
+                      marginLeft: spacing(1),
+                      color: colors.text,
+                      fontSize: 14,
+                      fontWeight: '500',
+                    }}
+                  >
+                    {c.name}
+                  </Text>
                 </View>
               ))}
             </RadioButton.Group>
           </Card.Content>
         </Card>
 
-        <Card style={{ borderRadius: 16, marginBottom: spacing(2) }}>
-          <Card.Content>
-            <Text variant="titleMedium">2) Choose your test date and time.</Text>
-            <Text style={{ color: colors.muted, marginTop: spacing(0.5) }}>
-               We send a reminder shortly before your drive.
+        <Card style={{ borderRadius: 18, marginBottom: spacing(3), elevation: 2, borderColor: colors.border, borderWidth: 1 }}>
+          <Card.Content style={{ paddingVertical: spacing(2.5), paddingHorizontal: spacing(2.5) }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                color: colors.text,
+                marginBottom: spacing(1),
+              }}
+            >
+              2. Schedule Your Test
+            </Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing(1.5), fontSize: 13 }}>
+              Enter your test date and time
             </Text>
             <TextInput
-              label="Test date (YYYY-MM-DD)"
+              label="Test Date (YYYY-MM-DD)"
               value={testDate}
               onChangeText={setTestDate}
-              style={{ marginTop: spacing(1) }}
+              style={{ marginTop: spacing(1), marginBottom: spacing(1) }}
               keyboardType="numbers-and-punctuation"
+              mode="outlined"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
             <TextInput
               label="Test time (HH:MM)"

@@ -84,7 +84,7 @@ export const MapboxSearchBox: React.FC<MapboxSearchBoxProps> = ({
     // Set new debounce timer
     debounceTimer.current = setTimeout(async () => {
       try {
-        const results = await getPlaceSuggestions(value, sessionToken, proximity);
+        const results = await getPlaceSuggestions(value, sessionToken);
         setSuggestions(results);
       } catch (error) {
         console.error('Search error:', error);
@@ -171,17 +171,18 @@ export const MapboxSearchBox: React.FC<MapboxSearchBoxProps> = ({
               <Text style={styles.loadingText}>Searching...</Text>
             </View>
           ) : suggestions.length > 0 ? (
-            <FlatList
-              data={suggestions}
-              renderItem={renderSuggestionItem}
-              keyExtractor={(item, index) => `${item.id}-${index}`}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-              maxHeight={300}
-              ItemSeparatorComponent={() => (
-                <Divider style={{ backgroundColor: colors.border }} />
-              )}
-            />
+            <View style={styles.flatListWrapper}>
+              <FlatList
+                data={suggestions}
+                renderItem={renderSuggestionItem}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                ItemSeparatorComponent={() => (
+                  <Divider style={{ backgroundColor: colors.border }} />
+                )}
+              />
+            </View>
           ) : input.length >= 2 ? (
             <View style={styles.noResultsContainer}>
               <Text style={styles.noResultsText}>No results found</Text>
@@ -199,38 +200,46 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   inputContent: {
-    paddingVertical: spacing(1),
+    paddingVertical: spacing(1.25),
   },
   suggestionsContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderLeftColor: colors.border,
     borderRightColor: colors.border,
     borderBottomColor: colors.border,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    maxHeight: 300,
-    marginTop: -spacing(0.5),
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+    marginTop: -spacing(1),
     zIndex: 100,
+    elevation: 4,
+    shadowColor: colors.text,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  flatListWrapper: {
+    maxHeight: 300,
   },
   suggestionItem: {
-    paddingVertical: spacing(2),
+    paddingVertical: spacing(1.5),
     paddingHorizontal: spacing(2),
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   suggestionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing(0.5),
+    marginBottom: spacing(0.25),
   },
   suggestionSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   loadingContainer: {
@@ -238,11 +247,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing(3),
-    gap: spacing(2),
+    gap: spacing(1.5),
   },
   loadingText: {
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '500',
   },
   noResultsContainer: {
     paddingVertical: spacing(3),

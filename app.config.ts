@@ -12,10 +12,10 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   scheme: 'drivest',
-  icon: './assets/logo.png',
+  icon: './assets/applogo.png',
   userInterfaceStyle: 'light',
   splash: {
-    image: './assets/logo.png',
+    image: './assets/applogo.png',
     resizeMode: 'cover',
     backgroundColor: '#f2f6ff',
   },
@@ -23,7 +23,7 @@ const config: ExpoConfig = {
     bundleIdentifier: 'com.drivest.app',
     supportsTablet: true,
     splash: {
-      image: './assets/logo.png',
+      image: './assets/applogo.png',
       resizeMode: 'cover',
       backgroundColor: '#f2f6ff',
     },
@@ -31,7 +31,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.drivest.app',
     adaptiveIcon: {
-      foregroundImage: './assets/logo.png',
+      foregroundImage: './assets/applogo.png',
       backgroundColor: '#f5f7ff',
     },
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
@@ -41,7 +41,7 @@ const config: ExpoConfig = {
       },
     },
     splash: {
-      image: './assets/logo.png',
+      image: './assets/applogo.png',
       resizeMode: 'cover',
       backgroundColor: '#f2f6ff',
     },

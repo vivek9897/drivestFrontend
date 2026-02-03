@@ -56,25 +56,57 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(3), paddingBottom: spacing(4) }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(2.5), paddingBottom: spacing(4), paddingTop: spacing(3) }}>
       <View style={styles.headerRow}>
         <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
-        <Text variant="titleLarge" style={{ flex: 1, textAlign: 'center', marginRight: spacing(6) }}>
-          {routeDto.name}
+        <Text variant="headlineSmall" style={{ flex: 1, textAlign: 'center', marginRight: spacing(6) }}>
+          Route
         </Text>
       </View>
 
-      <Card style={{ borderRadius: 16, marginTop: spacing(1) }}>
-        <Card.Content>
-          <Text style={{ color: colors.muted }}>
-            {metersToKm(routeDto.distanceM)} • {secondsToMinutes(routeDto.durationEstS)}
+      <Card style={{ borderRadius: 18, marginTop: spacing(1.5), elevation: 2, borderColor: colors.border, borderWidth: 1 }}>
+        <Card.Content style={{ paddingVertical: spacing(2.5), paddingHorizontal: spacing(2.5) }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: colors.text,
+              marginBottom: spacing(1),
+            }}
+          >
+            {routeDto.name}
           </Text>
-          <View style={{ flexDirection: 'row', marginTop: spacing(1), flexWrap: 'wrap' }}>
-            <Chip style={{ marginRight: spacing(1), marginBottom: spacing(1) }}>Version {routeDto.version}</Chip>
-            <Chip style={{ marginRight: spacing(1), marginBottom: spacing(1) }}>Centre {routeDto.centreId}</Chip>
+          <View style={{ flexDirection: 'row', gap: spacing(1.5), marginBottom: spacing(1.5) }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: spacing(0.25) }}>
+                Distance
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>
+                {metersToKm(routeDto.distanceM)}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: spacing(0.25) }}>
+                Duration
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>
+                {secondsToMinutes(routeDto.durationEstS)}
+              </Text>
+            </View>
           </View>
-          <Divider style={{ marginVertical: spacing(1) }} />
-          <View style={{ height: 240, borderRadius: 12, overflow: 'hidden' }}>
+          <View style={{ flexDirection: 'row', marginBottom: spacing(1.5), flexWrap: 'wrap', gap: spacing(0.75) }}>
+            <Chip
+              style={{
+                backgroundColor: colors.secondaryLight,
+                borderRadius: 8,
+              }}
+              textStyle={{ color: colors.secondaryDark, fontSize: 12 }}
+            >
+              v{routeDto.version}
+            </Chip>
+          </View>
+          <Divider style={{ marginVertical: spacing(1.5), backgroundColor: colors.border }} />
+          <View style={{ height: 240, borderRadius: 14, overflow: 'hidden', borderColor: colors.border, borderWidth: 1 }}>
             <MapboxGL.MapView style={StyleSheet.absoluteFill} styleURL="mapbox://styles/mapbox/navigation-day-v1">
               <MapboxGL.Camera
                 bounds={routeDto.bbox ? bboxToBounds(routeDto.bbox) : undefined}
@@ -137,8 +169,14 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 });
 
 export default RouteDetailScreen;

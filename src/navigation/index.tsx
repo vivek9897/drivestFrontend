@@ -118,7 +118,7 @@ const NavigationRoot = () => {
     <View style={styles.bootSplash}>
       <Animated.View style={[styles.bootSplashContent, { opacity: splashOpacity }]}>
         <ImageBackground
-          source={require('../../assets/logo.png')}
+          source={require('../../assets/applogo.png')}
           style={styles.bootSplashLogo}
           resizeMode="contain"
         />

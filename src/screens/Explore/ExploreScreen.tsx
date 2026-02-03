@@ -39,7 +39,7 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
   const handleMapboxLocationSelect = (result: SearchResult) => {
     const [longitude, latitude] = result.center;
     setInput(result.place_name);
-    setQuery(result.place_name);
+    setQuery(result.text || result.place_name);
     setNear(`${latitude},${longitude}`);
     setUserLocation([longitude, latitude]);
   };
@@ -60,53 +60,117 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(3), paddingTop: spacing(5) }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(4) }}>
         <Card style={styles.heroCard} mode="contained">
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.heroTitle}>
+          <Card.Content style={{ paddingVertical: spacing(2.5) }}>
+            <Text variant="headlineSmall" style={styles.heroTitle}>
               Find your test centre
             </Text>
-            <Text style={styles.heroSubtitle}>Search, download routes, and practice like you’re already on the road.</Text>
+            <Text style={styles.heroSubtitle}>Search, download routes, and practice with live navigation.</Text>
           </Card.Content>
         </Card>
 
         <View style={styles.searchCard}>
           <MapboxSearchBox
             onSelectLocation={handleMapboxLocationSelect}
-            placeholder="Search by postcode, city, centre name"
+            placeholder="Search by postcode or city"
             label="Find test centre"
             initialValue={input}
             proximity={userLocation}
           />
-          <Button mode="contained" onPress={handleNearMe} style={{ marginTop: spacing(1.5) }}>
-            Near me
+          <Button
+            mode="contained"
+            onPress={handleNearMe}
+            style={{
+              marginTop: spacing(1.5),
+              borderRadius: 10,
+              paddingVertical: spacing(0.5),
+            }}
+            labelStyle={{
+              fontSize: 15,
+              fontWeight: '600',
+            }}
+          >
+            Use my location
           </Button>
         </View>
 
-        <Card style={styles.goalCard}>
-          <Card.Content>
-            <Text variant="titleMedium">Your weekly goal</Text>
-            <Text style={{ color: colors.muted, marginTop: 4 }}>Complete 3 routes this week to keep your streak.</Text>
+        <Card style={styles.goalCard} mode="contained">
+          <Card.Content style={{ paddingVertical: spacing(2.5), paddingHorizontal: spacing(2.5) }}>
+            <Text
+              variant="titleMedium"
+              style={{
+                color: colors.text,
+                fontWeight: '700',
+                fontSize: 16,
+              }}
+            >
+              Your weekly goal
+            </Text>
+            <Text
+              style={{
+                color: colors.textSecondary,
+                marginTop: spacing(0.5),
+                fontSize: 14,
+                lineHeight: 20,
+              }}
+            >
+              Complete 3 routes this week to build your confidence.
+            </Text>
             <SegmentedButtons
-              style={{ marginTop: spacing(1.5) }}
+              style={{ marginTop: spacing(2) }}
               value={goalChoice}
               onValueChange={setGoalChoice}
               buttons={[
-                { value: '1', label: 'XP 120' },
-                { value: '2', label: 'XP 240' },
-                { value: '3', label: 'XP 360' },
+                { value: '1', label: 'Easy' },
+                { value: '2', label: 'Medium' },
+                { value: '3', label: 'Advanced' },
               ]}
             />
           </Card.Content>
         </Card>
 
-        {centresQuery.data?.map((centre: TestCentre) => (
-          <CentreCard
-            key={centre.id}
-            centre={centre}
-            onPress={() => navigation.navigate('CentreDetail', { centre })}
-          />
-        ))}
+        <View style={{ marginBottom: spacing(1) }}>
+          {centresQuery.data?.length ? (
+            <>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: colors.textSecondary,
+                  marginBottom: spacing(1.5),
+                  marginLeft: spacing(1),
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}
+              >
+                Test Centres
+              </Text>
+              {centresQuery.data?.map((centre: TestCentre) => (
+                <CentreCard
+                  key={centre.id}
+                  centre={centre}
+                  onPress={() => navigation.navigate('CentreDetail', { centre })}
+                />
+              ))}
+            </>
+          ) : (
+            <Card style={{ marginTop: spacing(2), borderRadius: 14 }}>
+              <Card.Content style={{ paddingVertical: spacing(4), paddingHorizontal: spacing(2) }}>
+                <Text
+                  style={{
+                    textAlign: 'center',
+                    color: colors.textSecondary,
+                    fontSize: 16,
+                    lineHeight: 24,
+                  }}
+                >
+                  Search for a test centre to see available routes
+                </Text>
+              </Card.Content>
+            </Card>
+          )}
+        </View>
       </ScrollView>
       <LocationConsentModal
         visible={showLocationPrompt}
@@ -135,23 +199,52 @@ const ExploreScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) =>
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1 },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+  },
   heroCard: {
     marginBottom: spacing(2.5),
-    borderRadius: 18,
-    backgroundColor: '#1f2f73',
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
-  heroTitle: { color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
-  heroSubtitle: { color: '#d9e3ff', marginTop: spacing(0.5), lineHeight: 20 },
+  heroTitle: {
+    color: '#ffffff',
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  heroSubtitle: {
+    color: colors.primaryLight,
+    marginTop: spacing(1),
+    lineHeight: 22,
+    fontSize: 15,
+    fontWeight: '500',
+  },
   searchCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: spacing(2),
-    marginBottom: spacing(2),
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing(2.5),
+    marginBottom: spacing(2.5),
+    elevation: 2,
+    borderColor: colors.border,
+    borderWidth: 1,
   },
-  goalCard: { marginBottom: spacing(2.5), borderRadius: 16 },
+  goalCard: {
+    marginBottom: spacing(3),
+    borderRadius: 18,
+    elevation: 2,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
 });
 
 export default ExploreScreen;

@@ -82,10 +82,10 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(3), paddingBottom: spacing(4) }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(2.5), paddingBottom: spacing(4), paddingTop: spacing(3) }}>
       <View style={styles.headerRow}>
         <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
-        <Text variant="titleLarge" style={{ flex: 1, textAlign: 'center', marginRight: spacing(6) }}>
+        <Text variant="headlineSmall" style={{ flex: 1, textAlign: 'center', marginRight: spacing(6) }}>
           {centre.name}
         </Text>
       </View>
@@ -206,31 +206,90 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  heroCard: { marginBottom: spacing(2), borderRadius: 16 },
-  map: { height: 180, marginTop: spacing(2), borderRadius: 12 },
-  heroHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing(2) },
-  pill: { alignSelf: 'flex-start' },
-  ctaRow: { marginTop: spacing(2), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  secondaryRow: { marginTop: spacing(1), flexDirection: 'row', gap: spacing(1) },
-  mapWrapper: { height: 180, marginTop: spacing(2), borderRadius: 12, overflow: 'hidden' },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroCard: {
+    marginBottom: spacing(3),
+    borderRadius: 18,
+    elevation: 3,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing(2),
+    marginBottom: spacing(2),
+  },
+  pill: {
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    fontSize: 12,
+  },
+  mapWrapper: {
+    height: 200,
+    marginVertical: spacing(2),
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  map: {
+    height: 200,
+    marginVertical: spacing(2),
+    borderRadius: 14,
+  },
   mapMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#ff5a5f',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: '#fff',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+  },
+  ctaRow: {
+    marginVertical: spacing(2),
+    paddingTop: spacing(2),
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  secondaryRow: {
+    marginTop: spacing(1.5),
+    flexDirection: 'row',
+    gap: spacing(1),
   },
   paymentsModal: {
-    backgroundColor: '#fff',
-    marginHorizontal: spacing(3),
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing(2),
     padding: spacing(3),
-    borderRadius: 16,
+    borderRadius: 18,
+    elevation: 5,
   },
-  paymentsVersion: { color: colors.muted, marginTop: spacing(0.5) },
-  paymentsBody: { color: colors.text, marginTop: spacing(1) },
+  paymentsVersion: {
+    color: colors.textSecondary,
+    marginTop: spacing(0.5),
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  paymentsBody: {
+    color: colors.textSecondary,
+    marginTop: spacing(1),
+    lineHeight: 22,
+    fontSize: 14,
+  },
 });
 
 export default CentreDetailScreen;

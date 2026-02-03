@@ -64,22 +64,36 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/applogo.png')} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.title}>RouteMaster</Text>
             <Text style={styles.subtitle}>Master your driving test routes with live navigation.</Text>
             <View style={styles.badges}>
               <Chip icon="map" style={styles.badge} textStyle={styles.badgeText}>
-                Map-first
+                Live Maps
               </Chip>
               <Chip icon="navigation" style={styles.badge} textStyle={styles.badgeText}>
                 Turn-by-turn
               </Chip>
-              <Chip icon="shield-check" style={styles.badge} textStyle={styles.badgeText}>
-                Cashback once
+              <Chip icon="cash-refund" style={styles.badge} textStyle={styles.badgeText}>
+                Cashback
               </Chip>
             </View>
           </View>
+
           <Card style={styles.card}>
-            <Card.Content>
+            <Card.Content style={{ paddingHorizontal: spacing(2.5), paddingVertical: spacing(3) }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: colors.text,
+                  marginBottom: spacing(2),
+                  textAlign: 'center',
+                }}
+              >
+                {mode === 'login' ? 'Welcome back' : 'Create your account'}
+              </Text>
+
               <Controller
                 control={control}
                 name="email"
@@ -91,11 +105,15 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
                     onChangeText={onChange}
                     autoCapitalize="none"
                     keyboardType="email-address"
-                    style={{ marginBottom: spacing(1) }}
+                    outlineColor={colors.border}
+                    activeOutlineColor={colors.primary}
+                    style={{ marginBottom: spacing(2), backgroundColor: colors.surface }}
+                    textColor={colors.text}
                   />
                 )}
               />
               {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+
               <Controller
                 control={control}
                 name="password"
@@ -106,18 +124,31 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
                     secureTextEntry
                     value={value}
                     onChangeText={onChange}
-                    style={{ marginBottom: spacing(1) }}
+                    outlineColor={colors.border}
+                    activeOutlineColor={colors.primary}
+                    style={{ marginBottom: spacing(2), backgroundColor: colors.surface }}
+                    textColor={colors.text}
                   />
                 )}
               />
               {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+
               {mode === 'register' && (
                 <>
                   <Controller
                     control={control}
                     name="name"
                     render={({ field: { onChange, value } }) => (
-                      <TextInput label="Name" mode="outlined" value={value} onChangeText={onChange} style={{ marginBottom: spacing(1) }} />
+                      <TextInput
+                        label="Full Name"
+                        mode="outlined"
+                        value={value}
+                        onChangeText={onChange}
+                        outlineColor={colors.border}
+                        activeOutlineColor={colors.primary}
+                        style={{ marginBottom: spacing(2), backgroundColor: colors.surface }}
+                        textColor={colors.text}
+                      />
                     )}
                   />
                   {errors.name && <Text style={styles.error}>{errors.name.message}</Text>}
@@ -125,64 +156,166 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
                     control={control}
                     name="phone"
                     render={({ field: { onChange, value } }) => (
-                      <TextInput label="Phone" mode="outlined" value={value} onChangeText={onChange} style={{ marginBottom: spacing(1) }} />
+                      <TextInput
+                        label="Phone (Optional)"
+                        mode="outlined"
+                        value={value}
+                        onChangeText={onChange}
+                        keyboardType="phone-pad"
+                        outlineColor={colors.border}
+                        activeOutlineColor={colors.primary}
+                        style={{ marginBottom: spacing(3), backgroundColor: colors.surface }}
+                        textColor={colors.text}
+                      />
                     )}
                   />
                 </>
               )}
-              <Button mode="contained" onPress={handleSubmit(onSubmit)} loading={isSubmitting} style={{ marginTop: spacing(2) }}>
-                {mode === 'login' ? 'Login' : 'Create account'}
+
+              <Button
+                mode="contained"
+                onPress={handleSubmit(onSubmit)}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                style={{
+                  marginVertical: spacing(1),
+                  paddingVertical: spacing(1),
+                  borderRadius: 10,
+                }}
+                labelStyle={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {mode === 'login' ? 'Sign in' : 'Create account'}
               </Button>
+
               <Button
                 mode="outlined"
                 onPress={async () => {
                   await startGuest();
                 }}
-                style={{ marginTop: spacing(1) }}
+                style={{
+                  marginVertical: spacing(1),
+                  paddingVertical: spacing(1),
+                  borderRadius: 10,
+                  borderColor: colors.border,
+                }}
+                labelStyle={{
+                  fontSize: 15,
+                  fontWeight: '600',
+                }}
               >
                 Continue as guest
               </Button>
-              <Button
-                mode="text"
-                onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
-                textColor={colors.primary}
-                style={{ marginTop: spacing(1) }}
-              >
-                {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Login'}
-              </Button>
+
+              <View style={{ marginTop: spacing(2), alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                  {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                </Text>
+                <Button
+                  mode="text"
+                  onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+                  textColor={colors.primary}
+                  style={{ marginTop: spacing(-1) }}
+                  labelStyle={{
+                    fontSize: 14,
+                    fontWeight: '700',
+                    textDecorationLine: 'underline',
+                  }}
+                >
+                  {mode === 'login' ? 'Sign up' : 'Sign in'}
+                </Button>
+              </View>
             </Card.Content>
           </Card>
         </ScrollView>
-        {error && (
-          <Text style={styles.errorBanner}>
-            {error}
-          </Text>
-        )}
+        {error && <Text style={styles.errorBanner}>{error}</Text>}
       </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, padding: spacing(3) },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingBottom: spacing(4) },
-  hero: { alignItems: 'center', marginBottom: spacing(2) },
-  title: { textAlign: 'center', marginTop: spacing(1), color: colors.text, fontWeight: '800' },
-  subtitle: { textAlign: 'center', marginTop: spacing(1), color: colors.muted },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: spacing(1) },
-  badge: { margin: spacing(0.5), backgroundColor: '#e7ecff' },
-  badgeText: { color: colors.text },
-  card: { borderRadius: 16, backgroundColor: '#fff' },
-  error: { color: colors.danger, marginTop: spacing(0.5) },
-  logo: { width: 350, height: 350, marginBottom: spacing(-6) },
-  errorBanner: {
-    marginTop: spacing(1),
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: spacing(2),
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: spacing(4),
+    paddingTop: spacing(2),
+  },
+  hero: {
+    alignItems: 'center',
+    marginBottom: spacing(3),
+  },
+  title: {
     textAlign: 'center',
-    color: colors.danger,
-    backgroundColor: 'rgba(255,0,0,0.08)',
-    padding: spacing(1),
+    marginTop: spacing(1),
+    color: colors.text,
+    fontWeight: '800',
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  subtitle: {
+    textAlign: 'center',
+    marginTop: spacing(1),
+    color: colors.textSecondary,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: spacing(2),
+    gap: spacing(1),
+  },
+  badge: {
+    margin: 0,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 20,
+  },
+  badgeText: {
+    color: colors.primaryDark,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  card: {
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    elevation: 2,
+    paddingHorizontal: spacing(0),
+  },
+  error: {
+    color: colors.error,
+    marginTop: spacing(0.5),
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  logo: {
+    width: 340,
+    height: 340,
+    marginBottom: spacing(-6),
+  },
+  errorBanner: {
+    marginHorizontal: spacing(2),
+    marginBottom: spacing(2),
+    textAlign: 'center',
+    color: colors.error,
+    backgroundColor: colors.errorLight,
+    padding: spacing(2),
     borderRadius: 12,
+    fontSize: 14,
+    fontWeight: '500',
+    overflow: 'hidden',
   },
 });
 

@@ -85,98 +85,103 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(3), paddingBottom: spacing(5) }}>
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge">Profile</Text>
+        <Card.Content style={{ paddingVertical: spacing(2) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Profile</Text>
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, value } }) => (
-              <TextInput label="Name" mode="outlined" value={value} onChangeText={onChange} style={{ marginTop: spacing(1) }} />
+              <TextInput label="Name" mode="outlined" value={value} onChangeText={onChange} style={{ marginTop: spacing(1.5), marginBottom: spacing(1) }} />
             )}
           />
           <Controller
             control={control}
             name="phone"
             render={({ field: { onChange, value } }) => (
-              <TextInput label="Phone" mode="outlined" value={value} onChangeText={onChange} style={{ marginTop: spacing(1) }} />
+              <TextInput label="Phone" mode="outlined" value={value} onChangeText={onChange} style={{ marginTop: spacing(1), marginBottom: spacing(1.5) }} />
             )}
           />
           <Button
             mode="contained"
-            style={{ marginTop: spacing(2) }}
+            style={{ marginTop: spacing(1.5), borderRadius: 10 }}
+            labelStyle={{ fontSize: 15, fontWeight: '600' }}
             onPress={handleSubmit(onSave)}
             disabled={guest}
           >
-            Save
+            Save Changes
           </Button>
         </Card.Content>
       </Card>
       {guest && (
         <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge">Guest mode</Text>
-            <Text style={{ color: colors.muted, marginTop: spacing(0.5) }}>
+          <Card.Content style={{ paddingVertical: spacing(2) }}>
+            <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1) }}>Guest Mode</Text>
+            <Text style={{ color: colors.muted, marginTop: spacing(0.5), fontSize: 14, lineHeight: 20 }}>
               Sign in to unlock purchases and save your profile.
             </Text>
             <Button
               mode="contained"
-              style={{ marginTop: spacing(2) }}
+              style={{ marginTop: spacing(2), borderRadius: 10 }}
+              labelStyle={{ fontSize: 15, fontWeight: '600' }}
               onPress={() => navigation.navigate('Auth', { mode: 'register' })}
             >
-              Create account
+              Create Account
             </Button>
           </Card.Content>
         </Card>
       )}
 
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge">Subscription</Text>
-          {entitlements.data?.length ? (
-            entitlements.data.map((ent) => (
-              <Text key={ent.id} style={{ color: colors.muted }}>
-                {ent.scope} {ent.centreId ? `for centre ${ent.centreId}` : ''} until {ent.endsAt || 'ongoing'}
-              </Text>
-            ))
-          ) : (
-            <Text>No active entitlements</Text>
-          )}
+        <Card.Content style={{ paddingVertical: spacing(2) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Subscription</Text>
+          <View style={{ marginBottom: spacing(1.5), backgroundColor: colors.backgroundAlt, padding: spacing(1.5), borderRadius: 12 }}>
+            {entitlements.data?.length ? (
+              entitlements.data.map((ent) => (
+                <Text key={ent.id} style={{ color: colors.text, fontSize: 13, lineHeight: 18, marginBottom: spacing(0.5) }}>
+                  • {ent.scope} {ent.centreId ? `for centre ${ent.centreId}` : ''} until {ent.endsAt || 'ongoing'}
+                </Text>
+              ))
+            ) : (
+              <Text style={{ color: colors.muted, fontSize: 13 }}>No active entitlements</Text>
+            )}
+          </View>
           <Button
             mode="outlined"
-            onPress={() => {
-              restore();
-            }}
-            style={{ marginTop: spacing(1) }}
+            onPress={() => restore()}
+            style={{ marginTop: spacing(1), borderRadius: 10 }}
+            labelStyle={{ fontSize: 14 }}
           >
-            Restore purchases
+            Restore Purchases
           </Button>
           <Button
             mode="outlined"
-            style={{ marginTop: spacing(1) }}
+            style={{ marginTop: spacing(1), borderRadius: 10 }}
+            labelStyle={{ fontSize: 14 }}
             onPress={async () => {
               const ok = await presentPaywall();
               if (!ok) Alert.alert('Paywall', 'No purchase made.');
             }}
           >
-            Open paywall
+            Open Paywall
           </Button>
           <Button
             mode="outlined"
-            style={{ marginTop: spacing(1) }}
+            style={{ marginTop: spacing(1), borderRadius: 10 }}
+            labelStyle={{ fontSize: 14 }}
             onPress={() => openCustomerCenter()}
           >
-            Manage subscription
+            Manage Subscription
           </Button>
         </Card.Content>
       </Card>
 
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge">Privacy Controls</Text>
+        <Card.Content style={{ paddingVertical: spacing(2) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Privacy Controls</Text>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text variant="bodyLarge">Analytics</Text>
-              <Text style={styles.muted}>Help improve app stability</Text>
+              <Text variant="bodyLarge" style={{ fontSize: 15, fontWeight: '600' }}>Analytics</Text>
+              <Text style={[styles.muted, { marginTop: spacing(0.25) }]}>Help improve app stability</Text>
             </View>
             <Switch
               value={analyticsOn}
@@ -195,8 +200,8 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
           </View>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text variant="bodyLarge">Notifications</Text>
-              <Text style={styles.muted}>Learning reminders and streaks</Text>
+              <Text variant="bodyLarge" style={{ fontSize: 15, fontWeight: '600' }}>Notifications</Text>
+              <Text style={[styles.muted, { marginTop: spacing(0.25) }]}>Learning reminders and streaks</Text>
             </View>
             <Switch
               value={notificationsOn}
@@ -235,8 +240,8 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
       </Card>
 
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge">Legal & Support</Text>
+        <Card.Content style={{ paddingVertical: spacing(2), paddingHorizontal: spacing(1) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5), marginLeft: spacing(1) }}>Legal & Support</Text>
           <List.Section>
             <List.Item
               title="Terms and Conditions"
@@ -294,26 +299,26 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
       </Card>
 
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge">Diagnostics</Text>
-          <Text style={styles.muted}>Export logs to share crashes or issues.</Text>
-          <Button mode="outlined" style={{ marginTop: spacing(1) }} onPress={onExportLogs}>
-            Export logs
+        <Card.Content style={{ paddingVertical: spacing(2) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1) }}>Diagnostics</Text>
+          <Text style={[styles.muted, { fontSize: 14, lineHeight: 20, marginBottom: spacing(1.5) }]}>Export logs to share crashes or issues.</Text>
+          <Button mode="outlined" style={{ marginTop: spacing(1), borderRadius: 10 }} labelStyle={{ fontSize: 14 }} onPress={onExportLogs}>
+            Export Logs
           </Button>
-          <Button style={{ marginTop: spacing(1) }} onPress={onClearLogs}>
-            Clear logs
+          <Button style={{ marginTop: spacing(1), borderRadius: 10 }} labelStyle={{ fontSize: 14 }} onPress={onClearLogs}>
+            Clear Logs
           </Button>
         </Card.Content>
       </Card>
 
       {!guest && (
         <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge">Account</Text>
-            <Button textColor={colors.danger} onPress={onDelete}>
-              Delete account
+          <Card.Content style={{ paddingVertical: spacing(2) }}>
+            <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Account</Text>
+            <Button textColor={colors.danger} style={{ borderRadius: 10 }} labelStyle={{ fontSize: 14 }} onPress={onDelete}>
+              Delete Account
             </Button>
-            <Button onPress={onLogout}>Log out</Button>
+            <Button style={{ borderRadius: 10, marginTop: spacing(1) }} labelStyle={{ fontSize: 14 }} onPress={onLogout}>Log Out</Button>
           </Card.Content>
         </Card>
       )}
@@ -340,22 +345,27 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, backgroundColor: colors.background },
-  card: { marginBottom: spacing(2), borderRadius: 16 },
-  muted: { color: colors.muted },
+  card: { marginBottom: spacing(2), borderRadius: 18, elevation: 2, borderColor: colors.border, borderWidth: 1 },
+  muted: { color: colors.muted, fontSize: 13 },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing(1),
-    marginTop: spacing(1),
+    justifyContent: 'space-between',
+    paddingVertical: spacing(1.5),
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
   },
   modal: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     marginHorizontal: spacing(3),
     padding: spacing(3),
-    borderRadius: 16,
+    borderRadius: 18,
+    elevation: 4,
+    borderColor: colors.border,
+    borderWidth: 1,
   },
-  docVersion: { color: colors.muted, marginTop: spacing(0.5) },
-  docBody: { color: colors.text, marginTop: spacing(1) },
+  docVersion: { color: colors.muted, marginTop: spacing(0.5), fontSize: 12 },
+  docBody: { color: colors.text, marginTop: spacing(1), fontSize: 14, lineHeight: 20 },
 });
 
 export default SettingsScreen;

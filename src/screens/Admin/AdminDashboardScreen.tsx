@@ -135,9 +135,9 @@ const AdminDashboardScreen: React.FC = () => {
       </Card>
 
       <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium">Upload GPX Route</Text>
-          <Text style={{ color: colors.muted, marginTop: spacing(0.5) }}>
+        <Card.Content style={{ paddingVertical: spacing(2) }}>
+          <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(0.5) }}>Upload GPX Route</Text>
+          <Text style={{ color: colors.muted, marginTop: spacing(0.5), fontSize: 14, lineHeight: 20, marginBottom: spacing(1.5) }}>
             Select the test centre, then upload a GPX file to create the next numbered route.
           </Text>
           <RadioButton.Group onValueChange={(v) => setCentreId(v)} value={centreId}>
@@ -157,7 +157,8 @@ const AdminDashboardScreen: React.FC = () => {
               mode="outlined"
               onPress={() => setShowAddressInput(true)}
               icon="magnify"
-              style={{ marginBottom: spacing(1.5) }}
+              style={{ marginBottom: spacing(1.5), borderRadius: 10 }}
+              labelStyle={{ fontSize: 14 }}
             >
               Search Address
             </Button>
@@ -181,23 +182,26 @@ const AdminDashboardScreen: React.FC = () => {
             label="New centre name (required if not selected)"
             value={centreName}
             onChangeText={setCentreName}
-            style={{ marginTop: spacing(1) }}
+            mode="outlined"
+            style={{ marginTop: spacing(1), marginBottom: spacing(1) }}
           />
           <TextInput
             label="Postcode (required if not selected)"
             value={postcode}
             onChangeText={setPostcode}
-            style={{ marginTop: spacing(1) }}
+            mode="outlined"
+            style={{ marginTop: spacing(1), marginBottom: spacing(1) }}
           />
           <TextInput
             label="Route name (required)"
             value={routeName}
             onChangeText={setRouteName}
-            style={{ marginTop: spacing(1) }}
+            mode="outlined"
+            style={{ marginTop: spacing(1), marginBottom: spacing(1) }}
           />
-          <Divider style={{ marginVertical: spacing(1) }} />
-          <Button mode="contained" onPress={pickAndUpload} loading={uploading} style={{ alignSelf: 'flex-start' }}>
-            Upload GPX
+          <Divider style={{ marginVertical: spacing(1.5) }} />
+          <Button mode="contained" onPress={pickAndUpload} loading={uploading} style={{ alignSelf: 'flex-start', borderRadius: 10 }} labelStyle={{ fontSize: 15, fontWeight: '600' }}>
+            Upload GPX File
           </Button>
         </Card.Content>
       </Card>
@@ -212,20 +216,20 @@ const AdminDashboardScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  card: { marginBottom: spacing(2), borderRadius: 16 },
-  heroCard: { marginBottom: spacing(2), borderRadius: 18, backgroundColor: '#13245a' },
-  heroTitle: { color: '#fff', fontWeight: '800' },
-  heroSubtitle: { color: '#c7d6ff', marginTop: spacing(0.5) },
-  heroStatsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(1) },
-  statChip: { marginRight: spacing(1), marginBottom: spacing(1), backgroundColor: 'rgba(255,255,255,0.12)' },
+  card: { marginBottom: spacing(2), borderRadius: 18, elevation: 2, borderColor: colors.border, borderWidth: 1 },
+  heroCard: { marginBottom: spacing(2), borderRadius: 18, backgroundColor: colors.primary, elevation: 3, borderColor: colors.primary, borderWidth: 0 },
+  heroTitle: { color: '#fff', fontWeight: '800', fontSize: 24 },
+  heroSubtitle: { color: 'rgba(255,255,255,0.85)', marginTop: spacing(0.5), fontSize: 14, lineHeight: 20 },
+  heroStatsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing(1.5), gap: spacing(1) },
+  statChip: { marginRight: 0, marginBottom: 0, backgroundColor: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1 },
   row: {
     marginTop: spacing(1),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  radioRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing(0.5) },
-  radioLabel: { flexShrink: 1 },
+  radioRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing(1), borderBottomColor: colors.border, borderBottomWidth: 1 },
+  radioLabel: { flexShrink: 1, fontSize: 14, color: colors.text, marginLeft: spacing(1) },
 });
 
 export default AdminDashboardScreen;
