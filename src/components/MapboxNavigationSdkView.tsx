@@ -16,7 +16,13 @@ export type MapboxNavSdkEvent = {
     distanceRemaining?: number;
     durationRemaining?: number;
     instruction?: string;
+    instructionSecondary?: string;
     distanceToInstruction?: number;
+    voiceInstruction?: string;
+    voiceDistanceAlongGeometry?: number;
+    maneuverType?: string;
+    maneuverModifier?: string;
+    roundaboutExit?: number;
   };
 };
 
