@@ -17,6 +17,7 @@ import MapboxNavigationSdkView, {
 } from '../../components/MapboxNavigationSdkView';
 import { calculateDistance } from '../../utils/mapbox';
 import { getDirections, NavStep } from '../../lib/mapboxNavigation';
+import { snapCoordinatesToRoads } from '../../utils/mapboxMatching';
 
 type Props = NativeStackScreenProps<any>;
 type NavigationState = 'PREVIEW' | 'NAVIGATING' | 'COMPLETED';
@@ -98,6 +99,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   const [completedCoords, setCompletedCoords] = useState<MapCoord[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [distanceRemaining, setDistanceRemaining] = useState<number | null>(null);
+  const [matchedToStartRoute, setMatchedToStartRoute] = useState<any>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -132,6 +134,27 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
       deactivateKeepAwake('navigation');
     };
   }, [navState]);
+
+  // Snap TO_START route to roads
+  useEffect(() => {
+    const snapToStartRoute = async () => {
+      if (userLocation && navPhase === 'TO_START' && routeCoords.length > 0) {
+        try {
+          const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+          if (token) {
+            const toStartCoords = [userLocation, routeCoords[0]] as Array<[number, number]>;
+            const snapped = await snapCoordinatesToRoads(toStartCoords, token);
+            if (snapped) {
+              setMatchedToStartRoute(snapped);
+            }
+          }
+        } catch (e) {
+          console.warn('TO_START route matching failed:', e);
+        }
+      }
+    };
+    snapToStartRoute();
+  }, [userLocation, navPhase, routeCoords.length]);
 
   // Location tracking
   useEffect(() => {
@@ -536,14 +559,16 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
         {userLocation && navState === 'NAVIGATING' && navPhase === 'TO_START' && (
           <MapboxGL.ShapeSource
             id="toStartSource"
-            shape={{
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: [userLocation, routeCoords[0]],
-              },
-            }}
+            shape={
+              matchedToStartRoute || {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [userLocation, routeCoords[0]],
+                },
+              }
+            }
           >
             <MapboxGL.LineLayer
               id="toStartLine"
