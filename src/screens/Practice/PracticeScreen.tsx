@@ -102,6 +102,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   const [distanceRemaining, setDistanceRemaining] = useState<number | null>(null);
   const [matchedToStartRoute, setMatchedToStartRoute] = useState<any>(null);
   const [matchedRoute, setMatchedRoute] = useState<any>(null);
+  const cameraRef = useRef<any>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -212,8 +213,38 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     return coords.map((c: LatLng): MapCoord => [c.longitude, c.latitude]);
   }, [routeDto]);
 
-  // Get proper driving route to start using Directions API
+  // Fit camera to route bounds in OVERVIEW mode
   useEffect(() => {
+    if (cameraMode === 'OVERVIEW' && routeCoords.length > 0 && cameraRef.current) {
+      // Calculate bounds from route coordinates
+      let minLng = routeCoords[0][0];
+      let maxLng = routeCoords[0][0];
+      let minLat = routeCoords[0][1];
+      let maxLat = routeCoords[0][1];
+
+      for (const [lng, lat] of routeCoords) {
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      }
+
+      // Fit camera to bounds with padding
+      const bounds = [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ] as [[number, number], [number, number]];
+
+      try {
+        cameraRef.current?.fitBounds(bounds, [100, 100, 100, 100], 500);
+        logNav.info('PRACTICE', `OVERVIEW: fitting ${routeCoords.length} coords to bounds`);
+      } catch (e) {
+        logNav.warn('PRACTICE', 'fitBounds failed', e);
+      }
+    }
+  }, [cameraMode, routeCoords.length]);
+
+  // Snap route to roads when route loads
     const getToStartRoute = async () => {
       if (userLocation && navPhase === 'TO_START' && routeCoords.length > 0) {
         try {
@@ -264,6 +295,48 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     };
     getMainRoute();
   }, [routeCoords.length, navState]);
+
+  // Fit camera to route bounds in OVERVIEW mode
+  useEffect(() => {
+    if (cameraMode === 'OVERVIEW' && routeCoords.length > 1 && cameraRef.current) {
+      // Calculate bounds from route coordinates
+      let minLng = routeCoords[0][0];
+      let maxLng = routeCoords[0][0];
+      let minLat = routeCoords[0][1];
+      let maxLat = routeCoords[0][1];
+
+      for (const [lng, lat] of routeCoords) {
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      }
+
+      // Add buffer to bounds (5% padding)
+      const lngBuffer = (maxLng - minLng) * 0.05;
+      const latBuffer = (maxLat - minLat) * 0.05;
+
+      const bounds = [
+        [minLng - lngBuffer, minLat - latBuffer],
+        [maxLng + lngBuffer, maxLat + latBuffer],
+      ] as [[number, number], [number, number]];
+
+      try {
+        cameraRef.current?.fitBounds(bounds, [80, 80, 80, 80], 500);
+        logNav.info('PRACTICE', `OVERVIEW: fitting ${routeCoords.length} coords to bounds [${minLng.toFixed(4)}, ${minLat.toFixed(4)}] to [${maxLng.toFixed(4)}, ${maxLat.toFixed(4)}]`);
+      } catch (e) {
+        logNav.warn('PRACTICE', 'fitBounds failed', e);
+        // Fallback: center on route start with wider zoom
+        if (cameraRef.current) {
+          cameraRef.current?.setCamera({
+            centerCoordinate: routeCoords[0],
+            zoomLevel: 12,
+            animationDuration: 500,
+          });
+        }
+      }
+    }
+  }, [cameraMode, routeCoords.length]);
 
   const navDestination = useMemo<MapCoord | null>(() => {
     if (!routeCoords.length) return null;
@@ -336,6 +409,14 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
         'You have reached the start point. Your test route has started.',
         [{ text: 'OK', onPress: () => {} }]
       );
+    } else {
+      // Log distance to start every 10 seconds while in TO_START phase
+      const lastDistLogRef = useRef<number>(0);
+      const now = Date.now();
+      if (now - lastDistLogRef.current > 10000) {
+        logNav.distanceToStart(distanceM);
+        lastDistLogRef.current = now;
+      }
     }
   }, [navPhase, navState, routeCoords, routeDto?.id, userLocation]);
 
@@ -591,21 +672,36 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
       <MapboxGL.MapView
         style={styles.map}
         styleURL={mapStyleUrl}
+        // In FOLLOW mode, offset camera so user is at bottom-center
+        contentInset={
+          cameraMode === 'FOLLOW' && navState === 'NAVIGATING'
+            ? [0, 0, 150, 0] // Bottom inset: pushes map down so user dot is higher
+            : [0, 0, 0, 0]
+        }
       >
         <MapboxGL.Camera
+          ref={cameraRef}
           defaultSettings={{
-            centerCoordinate: routeCoords[0],
+            centerCoordinate: routeCoords.length > 0 ? routeCoords[0] : [0, 0],
             zoomLevel: 14,
           }}
+          // In FOLLOW: user stays at bottom-center, map rotates. In OVERVIEW: show full route
           centerCoordinate={
             cameraMode === 'FOLLOW' && navState === 'NAVIGATING' && userLocation
               ? userLocation
-              : routeCoords[0]
+              : (cameraMode === 'OVERVIEW' ? undefined : routeCoords.length > 0 ? routeCoords[0] : [0, 0])
           }
+          // FOLLOW mode: follow user location with heading rotation
           followUserLocation={cameraMode === 'FOLLOW' && navState === 'NAVIGATING'}
           followZoomLevel={16}
           followHeading={cameraMode === 'FOLLOW' && navState === 'NAVIGATING' ? userHeading : 0}
-          animationDuration={1000}
+          followPitch={cameraMode === 'FOLLOW' && navState === 'NAVIGATING' ? 50 : 0}
+          // Faster animation for responsive feel
+          animationDuration={300}
+          // Always use pitch in FOLLOW for 3D perspective
+          pitch={cameraMode === 'FOLLOW' && navState === 'NAVIGATING' ? 50 : 0}
+          // Don't animate when switching modes - instant switch
+          animationMode="none"
         />
 
         <MapboxGL.UserLocation visible />
