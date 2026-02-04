@@ -194,14 +194,20 @@ const lineString = (geojsonOrPolyline: any, route: any) => {
       };
     }
   }
-  // fallback to polyline coords array on route (already decoded)
-  if (route?.bbox && Array.isArray(route.bbox) && route.bbox.length === 4) {
-    // bbox stored as [minX,minY,maxX,maxY]
+  // fallback to polyline - which is a stringified JSON array of [lon, lat] pairs
+  let coords: any[] = [];
+  if (typeof route?.polyline === 'string') {
+    try {
+      coords = JSON.parse(route.polyline);
+    } catch (e) {
+      coords = [];
+    }
+  } else if (Array.isArray(route?.polyline)) {
+    coords = route.polyline;
   }
-  const coords = route?.polylineCoords || [];
   return {
     type: 'Feature',
-    geometry: { type: 'LineString', coordinates: coords.map((c: any) => [c.longitude, c.latitude]) },
+    geometry: { type: 'LineString', coordinates: coords },
   };
 };
 
