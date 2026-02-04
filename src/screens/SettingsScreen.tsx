@@ -11,7 +11,11 @@ import { openCustomerCenter, presentPaywall, restore } from '../lib/revenuecat';
 import { legalDocs, legalUrls } from '../content/legal';
 import { CONSENT_KEYS, consentNow, getConsentValue, setConsentValue } from '../utils/consent';
 import { registerForPushNotifications } from '../lib/notifications';
-import { clearLogsAsync, exportLogsAsync, getLogFileUri } from '../lib/appLogger';
+import { clearLogsAsync, exportLogsAsync, getLogFileUri, logInfo } from '../lib/appLogger';
+import { logDeviceInfo } from '../utils/navigationLogger';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { isMapboxNavSdkAvailable } from '../components/MapboxNavigationSdkView';
 
 const SettingsScreen: React.FC<any> = ({ navigation }) => {
   const { user, logout, refresh, guest } = useAuth();
@@ -57,13 +61,23 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
 
   const onExportLogs = async () => {
     try {
+      // Log device info before export
+      logDeviceInfo({
+        platform: Platform.OS,
+        osVersion: Platform.Version.toString(),
+        appVersion: Constants.expoConfig?.version || 'unknown',
+        mapboxToken: !!process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
+        hasNavSDK: isMapboxNavSdkAvailable(),
+      });
+      logInfo('LOG_EXPORT', { userId: user?.id, timestamp: new Date().toISOString() });
+      
       const result = await exportLogsAsync();
       if (!result.shared) {
         Alert.alert('Logs saved', `Log file: ${result.uri}`);
       }
     } catch (error) {
       Alert.alert('Export failed', 'Unable to share logs right now.');
-      console.warn('export logs failed', error);
+      logInfo('LOG_EXPORT_FAILED', error);
     }
   };
 

@@ -17,7 +17,8 @@ import MapboxNavigationSdkView, {
 } from '../../components/MapboxNavigationSdkView';
 import { calculateDistance } from '../../utils/mapbox';
 import { getDirections, NavStep } from '../../lib/mapboxNavigation';
-import { snapCoordinatesToRoads } from '../../utils/mapboxMatching';
+import { getDirectionsRoute } from '../../utils/mapboxMatching';
+import { logNav, logSessionStart, logSessionEnd } from '../../utils/navigationLogger';
 
 type Props = NativeStackScreenProps<any>;
 type NavigationState = 'PREVIEW' | 'NAVIGATING' | 'COMPLETED';
@@ -100,6 +101,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [distanceRemaining, setDistanceRemaining] = useState<number | null>(null);
   const [matchedToStartRoute, setMatchedToStartRoute] = useState<any>(null);
+  const [matchedRoute, setMatchedRoute] = useState<any>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -108,6 +110,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   const lastSpokenStepRef = useRef<number | null>(null);
   const spokenInstructionsRef = useRef<Set<string>>(new Set());
   const lastSpeechTimeRef = useRef<number>(0);
+  const lastGpsLogTime = useRef<number>(0);
 
   useEffect(() => {
     if (routeDto && !routeDto.coordinates && routeDto.id) {
@@ -135,32 +138,12 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     };
   }, [navState]);
 
-  // Snap TO_START route to roads
-  useEffect(() => {
-    const snapToStartRoute = async () => {
-      if (userLocation && navPhase === 'TO_START' && routeCoords.length > 0) {
-        try {
-          const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-          if (token) {
-            const toStartCoords = [userLocation, routeCoords[0]] as Array<[number, number]>;
-            const snapped = await snapCoordinatesToRoads(toStartCoords, token);
-            if (snapped) {
-              setMatchedToStartRoute(snapped);
-            }
-          }
-        } catch (e) {
-          console.warn('TO_START route matching failed:', e);
-        }
-      }
-    };
-    snapToStartRoute();
-  }, [userLocation, navPhase, routeCoords.length]);
-
   // Location tracking
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        logNav.gpsPermissionDenied();
         Alert.alert('Permission Denied', 'Location permission is required for navigation');
         return;
       }
@@ -172,6 +155,18 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
           timeInterval: 500,    // Update every 500ms (not 1000)
         },
         (loc: Location.LocationObject) => {
+          // Log GPS updates every 10 seconds to avoid log spam
+          const now = Date.now();
+          if (!lastGpsLogTime.current || now - lastGpsLogTime.current > 10000) {
+            logNav.gpsUpdate(
+              loc.coords.latitude,
+              loc.coords.longitude,
+              loc.coords.accuracy || 0,
+              loc.coords.speed
+            );
+            lastGpsLogTime.current = now;
+          }
+          
           setUserLocation([loc.coords.longitude, loc.coords.latitude]);
           if (loc.coords.heading !== null) {
             setUserHeading(loc.coords.heading);
@@ -181,7 +176,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
           }
         },
       );
-    })();
+    })().catch(e => logNav.gpsError(e));
 
     return () => {
       locationWatchRef.current?.remove();
@@ -216,6 +211,59 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     const coords = routeDto ? getRouteCoords(routeDto) : [];
     return coords.map((c: LatLng): MapCoord => [c.longitude, c.latitude]);
   }, [routeDto]);
+
+  // Get proper driving route to start using Directions API
+  useEffect(() => {
+    const getToStartRoute = async () => {
+      if (userLocation && navPhase === 'TO_START' && routeCoords.length > 0) {
+        try {
+          const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+          if (!token) {
+            logNav.error('PRACTICE', 'No Mapbox token for TO_START route');
+            return;
+          }
+          const toStartCoords = [userLocation, routeCoords[0]] as Array<[number, number]>;
+          logNav.toStartRequest(toStartCoords[0], toStartCoords[1]);
+          const routed = await getDirectionsRoute(toStartCoords, token);
+          if (routed) {
+            logNav.toStartSuccess(routed.geometry.coordinates.length);
+            setMatchedToStartRoute(routed);
+          } else {
+            logNav.toStartFailed('API returned null');
+          }
+        } catch (e) {
+          logNav.toStartFailed(String(e));
+        }
+      }
+    };
+    getToStartRoute();
+  }, [userLocation, navPhase, routeCoords, routeCoords.length]);
+
+  // Get proper driving route for main practice route using Directions API
+  useEffect(() => {
+    const getMainRoute = async () => {
+      if (routeCoords.length > 0 && navState === 'NAVIGATING') {
+        try {
+          const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+          if (!token) {
+            logNav.error('PRACTICE', 'No Mapbox token for main route');
+            return;
+          }
+          logNav.practiceRouteStart(routeCoords.length);
+          const routed = await getDirectionsRoute(routeCoords, token);
+          if (routed) {
+            logNav.practiceRouteSuccess(routeCoords.length, routed.geometry.coordinates.length);
+            setMatchedRoute(routed);
+          } else {
+            logNav.practiceRouteFailed('API returned null');
+          }
+        } catch (e) {
+          logNav.practiceRouteFailed(String(e));
+        }
+      }
+    };
+    getMainRoute();
+  }, [routeCoords.length, navState]);
 
   const navDestination = useMemo<MapCoord | null>(() => {
     if (!routeCoords.length) return null;
@@ -267,6 +315,10 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     const distanceM = calculateDistance(userLocation[0], userLocation[1], start[0], start[1]) * 1000;
 
     if (distanceM <= ARRIVAL_THRESHOLD_M) {
+      logNav.arrivedAtStart();
+      logNav.navigationPhaseChange('TO_START', 'ON_ROUTE');
+      logSessionStart(routeDto?.id || 'unknown', routeDto?.name || 'Unnamed Route');
+      
       setNavPhase('ON_ROUTE');
       startTimeRef.current = Date.now();
       setElapsed(0);
@@ -276,7 +328,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
       offRouteAlertRef.current = false;
 
       if (routeDto?.id) {
-        apiRoutes.startPractice(routeDto.id).catch((err: unknown) => console.warn(err));
+        apiRoutes.startPractice(routeDto.id).catch((err: unknown) => logNav.error('API', 'startPractice failed', err));
       }
 
       Alert.alert(
@@ -484,10 +536,13 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   };
 
   const handleComplete = async () => {
+    const durationS = elapsed;
+    logNav.routeCompleted(durationS);
+    logSessionEnd(routeDto?.id || 'unknown', true, durationS);
+    
     setNavState('COMPLETED');
     setNavPhase(null);
 
-    const durationS = elapsed;
     const completed = true;
 
     if (routeDto?.id) {
@@ -503,7 +558,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
           lastCompletedAt: Date.now(),
         });
       } catch (err) {
-        console.error('Failed to save practice:', err);
+        logNav.error('API', 'finishPractice failed', err);
       }
     }
 
@@ -611,14 +666,16 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
         {/* Full route outline (for contrast) */}
         <MapboxGL.ShapeSource
           id="routeSource"
-          shape={{
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: routeCoords,
-            },
-          }}
+          shape={
+            matchedRoute || {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: routeCoords,
+              },
+            }
+          }
         >
           <MapboxGL.LineLayer
             id="routeOutline"

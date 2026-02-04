@@ -10,7 +10,8 @@ import MapboxGL from '../../lib/mapbox';
 import { useEntitlements, hasAccessToCentre } from '../../hooks/useEntitlements';
 import PaywallModal from '../../components/PaywallModal';
 import { useAuth } from '../../context/AuthContext';
-import { snapCoordinatesToRoads } from '../../utils/mapboxMatching';
+import { getDirectionsRoute } from '../../utils/mapboxMatching';
+import { logNav } from '../../utils/navigationLogger';
 
 const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navigation }) => {
   const { guest } = useAuth();
@@ -57,24 +58,37 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
     setDownloading(false);
   };
 
-  // Snap coordinates to roads when route changes
+  // Get proper driving route using Directions API
   useEffect(() => {
-    const snapRoute = async () => {
+    const routeRoute = async () => {
       if (routeDto?.coordinates && Array.isArray(routeDto.coordinates) && routeDto.coordinates.length > 0) {
         try {
           const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-          if (token) {
-            const snapped = await snapCoordinatesToRoads(routeDto.coordinates, token);
-            if (snapped) {
-              setMatchedRoute(snapped);
-            }
+          if (!token) {
+            logNav.error('ROUTE_DETAIL', 'No Mapbox token configured');
+            return;
+          }
+          logNav.routeDetailStart(routeDto.id, routeDto.coordinates.length);
+          const routed = await getDirectionsRoute(routeDto.coordinates, token);
+          if (routed) {
+            logNav.routeDetailDirectionsSuccess(
+              routeDto.coordinates.length,
+              routed.geometry.coordinates.length
+            );
+            setMatchedRoute(routed);
+          } else {
+            logNav.routeDetailDirectionsFailed('API returned null');
+            logNav.routeDetailFallback();
           }
         } catch (e) {
-          console.warn('Map matching failed, using original geometry');
+          logNav.routeDetailDirectionsFailed(String(e));
+          logNav.routeDetailFallback();
         }
+      } else {
+        logNav.warn('ROUTE_DETAIL', 'No coordinates in route');
       }
     };
-    snapRoute();
+    routeRoute();
   }, [routeDto?.id]);
 
   return (
