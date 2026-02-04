@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Card, Text, Button, Chip, IconButton, Divider } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import MapboxGL from '../../lib/mapbox';
 import { useEntitlements, hasAccessToCentre } from '../../hooks/useEntitlements';
 import PaywallModal from '../../components/PaywallModal';
 import { useAuth } from '../../context/AuthContext';
+import { snapCoordinatesToRoads } from '../../utils/mapboxMatching';
 
 const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navigation }) => {
   const { guest } = useAuth();
@@ -39,6 +40,7 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
   const canAccess = hasAccessToCentre(entitlements.data, initialRoute.centreId);
   const [routeDto, setRouteDto] = useState(initialRoute);
   const [downloading, setDownloading] = useState(false);
+  const [matchedRoute, setMatchedRoute] = useState<any>(null);
   const isDownloaded = !!routeDto?.downloaded;
   const [paywall, setPaywall] = useState(false);
 
@@ -54,6 +56,26 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
     saveDownloadedRoute(data);
     setDownloading(false);
   };
+
+  // Snap coordinates to roads when route changes
+  useEffect(() => {
+    const snapRoute = async () => {
+      if (routeDto?.coordinates && Array.isArray(routeDto.coordinates) && routeDto.coordinates.length > 0) {
+        try {
+          const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+          if (token) {
+            const snapped = await snapCoordinatesToRoads(routeDto.coordinates, token);
+            if (snapped) {
+              setMatchedRoute(snapped);
+            }
+          }
+        } catch (e) {
+          console.warn('Map matching failed, using original geometry');
+        }
+      }
+    };
+    snapRoute();
+  }, [routeDto?.id]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(2.5), paddingBottom: spacing(4), paddingTop: spacing(3) }}>
@@ -115,7 +137,7 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
                   routeDto.bbox ? undefined : [routeDto.lng ?? routeDto.centre?.lng ?? 0, routeDto.lat ?? routeDto.centre?.lat ?? 0]
                 }
               />
-              <MapboxGL.ShapeSource id="preview-route" shape={lineString(routeDto.geojson || routeDto.polyline, routeDto)}>
+              <MapboxGL.ShapeSource id="preview-route" shape={matchedRoute || lineString(routeDto.geojson || routeDto.polyline, routeDto)}>
                 <MapboxGL.LineLayer id="preview-route-line" style={{ lineColor: colors.primary, lineWidth: 4 }} />
               </MapboxGL.ShapeSource>
             </MapboxGL.MapView>
@@ -182,9 +204,19 @@ const styles = StyleSheet.create({
 export default RouteDetailScreen;
 
 const lineString = (geojsonOrPolyline: any, route: any) => {
-  if (geojsonOrPolyline?.type === 'FeatureCollection' || geojsonOrPolyline?.type === 'Feature') {
+  // If geojson is already a proper FeatureCollection with geometry, use it
+  if (geojsonOrPolyline?.type === 'FeatureCollection') {
+    // Extract the first feature's geometry if it exists
+    const feature = geojsonOrPolyline?.features?.[0];
+    if (feature?.geometry) {
+      return feature;
+    }
+  }
+  // If geojson is already a Feature, use it directly
+  if (geojsonOrPolyline?.type === 'Feature') {
     return geojsonOrPolyline;
   }
+  
   if (route?.gpx) {
     const coords = coordsFromGpx(route.gpx);
     if (coords.length) {
@@ -194,7 +226,8 @@ const lineString = (geojsonOrPolyline: any, route: any) => {
       };
     }
   }
-  // fallback to polyline - which is a stringified JSON array of [lon, lat] pairs
+  
+  // fallback to polyline - which is a stringified JSON array of [lon, lat] pairs OR coordinates array
   let coords: any[] = [];
   if (typeof route?.polyline === 'string') {
     try {
@@ -204,7 +237,11 @@ const lineString = (geojsonOrPolyline: any, route: any) => {
     }
   } else if (Array.isArray(route?.polyline)) {
     coords = route.polyline;
+  } else if (Array.isArray(route?.coordinates)) {
+    coords = route.coordinates;
   }
+  
+  // Return as proper GeoJSON Feature with LineString
   return {
     type: 'Feature',
     geometry: { type: 'LineString', coordinates: coords },

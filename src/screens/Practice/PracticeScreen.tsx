@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, IconButton, Text } from 'react-native-paper';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RouteDto, apiRoutes } from '../../api';
 import { getRouteCoords } from '../../utils';
@@ -119,6 +120,18 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
         });
     }
   }, [routeDto?.id, routeDto?.coordinates]);
+
+  useEffect(() => {
+    if (navState === 'NAVIGATING') {
+      activateKeepAwake('navigation');
+    } else {
+      deactivateKeepAwake('navigation');
+    }
+
+    return () => {
+      deactivateKeepAwake('navigation');
+    };
+  }, [navState]);
 
   // Location tracking
   useEffect(() => {
@@ -306,7 +319,12 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
   }, [navState, navPhase, userLocation, routeCoords]);
 
   useEffect(() => {
-    if (navState !== 'NAVIGATING' || !userLocation || !navDestination || isMapboxNavSdkAvailable) {
+    // Fallback navigation always needed during TO_START (to guide user to start with instructions)
+    // During ON_ROUTE with SDK available: skip fallback, use SDK
+    // During ON_ROUTE without SDK: use fallback
+    const shouldUseFallback = navState === 'NAVIGATING' && (navPhase === 'TO_START' || !isMapboxNavSdkAvailable);
+
+    if (!shouldUseFallback || !userLocation || !navDestination) {
       setNavLineCoords([]);
       setFallbackSteps([]);
       return;
@@ -327,7 +345,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
     };
 
     buildFallbackNav().catch((err: unknown) => console.warn('Failed to build nav route', err));
-  }, [navDestination, navState, userLocation]);
+  }, [navDestination, navState, navPhase, userLocation, isMapboxNavSdkAvailable]);
 
   useEffect(() => {
     if (
@@ -686,7 +704,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
             </View>
 
             {/* Navigation status */}
-            {navState === 'NAVIGATING' && navPhase === 'TO_START' && (
+            {navState === 'NAVIGATING' && navPhase === 'TO_START' && userLocation && routeCoords.length > 0 && (
               <View
                 style={{
                   marginTop: spacing(1),
@@ -698,6 +716,13 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
                 <Text style={{ fontSize: 13, fontWeight: '600', color: colors.warning }}>
                   📍 Navigating to start point
                 </Text>
+                <View style={{ marginTop: spacing(0.5) }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>
+                    Distance to start: {formatDistance(
+                      calculateDistance(userLocation[0], userLocation[1], routeCoords[0][0], routeCoords[0][1]) * 1000
+                    )}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -796,7 +821,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
 
       {/* Instruction Banner (from SDK or fallback) - Compact Toast-style with visual icons */}
       {navState === 'NAVIGATING' &&
-        navPhase === 'ON_ROUTE' &&
+        (navPhase === 'TO_START' || navPhase === 'ON_ROUTE') &&
         currentInstruction && (
           <View style={styles.instructionBanner}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -855,7 +880,7 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
             </Button>
           )}
 
-          {navState === 'NAVIGATING' && navPhase === 'ON_ROUTE' && (
+          {navState === 'NAVIGATING' && (navPhase === 'TO_START' || navPhase === 'ON_ROUTE') && (
             <>
               <Button
                 mode="outlined"
@@ -872,17 +897,18 @@ const PracticeScreen: React.FC<Props> = ({ route: routeNav, navigation }) => {
                 size={24}
                 style={[styles.button, { flex: 0.3 }]}
                 onPress={() => setIsMuted(!isMuted)}
-                disabled={!isMapboxNavSdkAvailable}
               />
 
-              <Button
-                mode="contained"
-                onPress={handleComplete}
-                style={[styles.button, { flex: 1 }]}
-                labelStyle={{ fontSize: 15, fontWeight: '700' }}
-              >
-                Finish Route
-              </Button>
+              {navPhase === 'ON_ROUTE' && (
+                <Button
+                  mode="contained"
+                  onPress={handleComplete}
+                  style={[styles.button, { flex: 1 }]}
+                  labelStyle={{ fontSize: 15, fontWeight: '700' }}
+                >
+                  Finish Route
+                </Button>
+              )}
             </>
           )}
 
