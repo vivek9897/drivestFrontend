@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text, TextInput, Card, Chip } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -60,39 +61,43 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.hero}>
-            <Image source={require('../../assets/applogo.png')} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.title}>RouteMaster</Text>
-            <Text style={styles.subtitle}>Master your driving test routes with live navigation.</Text>
-            <View style={styles.badges}>
-              <Chip icon="map" style={styles.badge} textStyle={styles.badgeText}>
-                Live Maps
-              </Chip>
-              <Chip icon="navigation" style={styles.badge} textStyle={styles.badgeText}>
-                Turn-by-turn
-              </Chip>
-              <Chip icon="cash-refund" style={styles.badge} textStyle={styles.badgeText}>
-                Cashback
-              </Chip>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.content}>
+            <View style={styles.hero}>
+              <Image source={require('../../assets/applogo.png')} style={styles.logo} resizeMode="contain" />
+              <Text style={styles.subtitle}>Master your driving test routes with live navigation.</Text>
+              <View style={styles.badges}>
+                <Chip icon="map" style={styles.badge} textStyle={styles.badgeText}>
+                  Live Maps
+                </Chip>
+                <Chip icon="navigation" style={styles.badge} textStyle={styles.badgeText}>
+                  Turn-by-turn
+                </Chip>
+                <Chip icon="cash-refund" style={styles.badge} textStyle={styles.badgeText}>
+                  Cashback
+                </Chip>
+              </View>
             </View>
-          </View>
 
-          <Card style={styles.card}>
-            <Card.Content style={{ paddingHorizontal: spacing(2.5), paddingVertical: spacing(3) }}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: colors.text,
-                  marginBottom: spacing(2),
-                  textAlign: 'center',
-                }}
-              >
-                {mode === 'login' ? 'Welcome back' : 'Create your account'}
-              </Text>
+            <Card style={styles.card}>
+              <Card.Content style={{ paddingHorizontal: spacing(2.5), paddingVertical: spacing(3) }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: colors.text,
+                    marginBottom: spacing(2),
+                    textAlign: 'center',
+                  }}
+                >
+                  {mode === 'login' ? 'Welcome back' : 'Create your account'}
+                </Text>
 
               <Controller
                 control={control}
@@ -228,12 +233,13 @@ const AuthScreen: React.FC<any> = ({ navigation, route }) => {
                   {mode === 'login' ? 'Sign up' : 'Sign in'}
                 </Button>
               </View>
-            </Card.Content>
-          </Card>
+              </Card.Content>
+            </Card>
+          </View>
+          {error && <Text style={styles.errorBanner}>{error}</Text>}
         </ScrollView>
-        {error && <Text style={styles.errorBanner}>{error}</Text>}
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -245,31 +251,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: spacing(2),
+    paddingBottom: spacing(1),
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingBottom: spacing(4),
-    paddingTop: spacing(2),
+  },
+  content: {
+    paddingTop: spacing(1),
+    paddingBottom: spacing(1.5),
   },
   hero: {
     alignItems: 'center',
-    marginBottom: spacing(3),
-  },
-  title: {
-    textAlign: 'center',
-    marginTop: spacing(1),
-    color: colors.text,
-    fontWeight: '800',
-    fontSize: 28,
-    lineHeight: 32,
+    marginBottom: spacing(1.5),
   },
   subtitle: {
     textAlign: 'center',
-    marginTop: spacing(1),
+    marginTop: spacing(0.75),
     color: colors.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
   },
   badges: {
     flexDirection: 'row',
@@ -301,9 +302,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   logo: {
-    width: 340,
-    height: 340,
-    marginBottom: spacing(-6),
+    width: 130,
+    height: 130,
+    marginBottom: spacing(-1),
   },
   errorBanner: {
     marginHorizontal: spacing(2),

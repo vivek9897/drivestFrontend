@@ -142,7 +142,7 @@ export const buildNavPackage = async (
       ...settings,
       waypointNames: settings.waypointNames ?? [],
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       return { error: result.error };
     }
     chunkResults.push(result.value);
@@ -198,7 +198,7 @@ const matchChunk = async (
   }
   const url = buildMatchUrl(coords, accessToken, options);
   const response = await fetchWithTimeout(url, options.timeoutMs);
-  if (!response.ok) {
+  if (response.ok === false) {
     return { ok: false, error: response.error };
   }
   if (!response.data) {

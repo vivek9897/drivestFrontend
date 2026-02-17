@@ -3,7 +3,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
-import { Animated, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { Animated, ImageBackground, StyleSheet, View } from 'react-native';
 import AuthScreen from '../screens/AuthScreen';
 import ExploreScreen from '../screens/Explore/ExploreScreen';
 import CentreDetailScreen from '../screens/Explore/CentreDetailScreen';
@@ -122,7 +122,6 @@ const NavigationRoot = () => {
           style={styles.bootSplashLogo}
           resizeMode="contain"
         />
-        <Text style={styles.bootSplashTitle}>Welcome to Drivest</Text>
       </Animated.View>
     </View>
   );
@@ -187,14 +186,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bootSplashLogo: {
-    width: 220,
-    height: 220,
-  },
-  bootSplashTitle: {
-    marginTop: 18,
-    fontSize: 22,
-    color: '#0b1b46',
-    fontWeight: '700',
+    width: 360,
+    height: 360,
   },
 });
 

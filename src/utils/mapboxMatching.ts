@@ -8,6 +8,8 @@ export interface MapMatchedRoute {
     type: 'LineString';
     coordinates: Array<[number, number]>;
   };
+  distanceM?: number;
+  durationS?: number;
 }
 
 /**
@@ -65,16 +67,19 @@ export async function getDirectionsRoute(
   }
 
   try {
-    // Limit to 25 waypoints if needed (Directions API limit)
+    // Limit to 24 waypoints max (Mapbox Directions API limit is 25, use 24 for safety)
     let waypoints = coordinates;
     let sampled = false;
-    if (coordinates.length > 25) {
+    if (coordinates.length > 24) {
       sampled = true;
-      const step = Math.ceil(coordinates.length / 25);
+      // Sample to 23 waypoints, then add end point = 24 total
+      const targetCount = 23;
+      const step = Math.floor(coordinates.length / targetCount);
       waypoints = [];
-      for (let i = 0; i < coordinates.length; i += step) {
+      for (let i = 0; i < coordinates.length && waypoints.length < targetCount; i += step) {
         waypoints.push(coordinates[i]);
       }
+      // Always include the last point
       if (waypoints[waypoints.length - 1] !== coordinates[coordinates.length - 1]) {
         waypoints.push(coordinates[coordinates.length - 1]);
       }
@@ -121,6 +126,8 @@ export async function getDirectionsRoute(
         type: 'LineString',
         coordinates: route.geometry.coordinates,
       },
+      distanceM: typeof route.distance === 'number' ? route.distance : undefined,
+      durationS: typeof route.duration === 'number' ? route.duration : undefined,
     };
   } catch (error) {
     logNav.directionsError(error);

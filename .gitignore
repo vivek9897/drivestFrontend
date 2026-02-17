@@ -41,9 +41,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Native folders are intentionally tracked because this app includes
+# custom Mapbox Navigation bridge code under android/ and ios/.
 
 # build outputs
 build/

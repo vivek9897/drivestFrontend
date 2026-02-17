@@ -14,6 +14,8 @@ import { openCustomerCenter, presentPaywall, restore } from '../../lib/revenueca
 import { legalDocs } from '../../content/legal';
 import { useAuth } from '../../context/AuthContext';
 import { reverseGeocode } from '../../lib/mapboxSearch';
+import { getDirectionsRoute } from '../../utils/mapboxMatching';
+import { getRouteCoords } from '../../utils';
 
 const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navigation }) => {
   const { guest } = useAuth();
@@ -47,6 +49,10 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
   const [showPayments, setShowPayments] = React.useState(false);
   const [address, setAddress] = React.useState<string | null>(null);
   const [addressLoading, setAddressLoading] = React.useState(false);
+  const [routeMetricsById, setRouteMetricsById] = React.useState<
+    Record<string, { distanceM: number; durationS: number }>
+  >({});
+  const mapboxMetricInFlightRef = React.useRef<Set<string>>(new Set());
 
   /**
    * Fetch address from coordinates on mount
@@ -69,6 +75,44 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
     fetchAddress();
   }, [centre]);
 
+  React.useEffect(() => {
+    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+    const routes = routesQuery.data as any[] | undefined;
+    if (!token || !routes?.length) return;
+
+    let cancelled = false;
+    const calculateMapboxMetrics = async () => {
+      for (const route of routes) {
+        if (cancelled || routeMetricsById[route.id] || mapboxMetricInFlightRef.current.has(route.id)) continue;
+        mapboxMetricInFlightRef.current.add(route.id);
+        const coords = getRouteCoords(route).map((c) => [c.longitude, c.latitude] as [number, number]);
+        if (coords.length < 2) {
+          mapboxMetricInFlightRef.current.delete(route.id);
+          continue;
+        }
+
+        const routed = await getDirectionsRoute(coords, token);
+        mapboxMetricInFlightRef.current.delete(route.id);
+        if (cancelled || !routed?.distanceM || !routed?.durationS) continue;
+        setRouteMetricsById((prev) => {
+          if (prev[route.id]) return prev;
+          return {
+            ...prev,
+            [route.id]: {
+              distanceM: routed.distanceM as number,
+              durationS: routed.durationS as number,
+            },
+          };
+        });
+      }
+    };
+
+    calculateMapboxMetrics();
+    return () => {
+      cancelled = true;
+    };
+  }, [routesQuery.data]);
+
   const canAccess = hasAccessToCentre(entitlements.data, centre.id);
 
   const handlePurchase = async () => {
@@ -85,9 +129,7 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
     <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing(2.5), paddingBottom: spacing(4), paddingTop: spacing(3) }}>
       <View style={styles.headerRow}>
         <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
-        <Text variant="headlineSmall" style={{ flex: 1, textAlign: 'center', marginRight: spacing(6) }}>
-          {centre.name}
-        </Text>
+        <View style={{ flex: 1 }} />
       </View>
       <Card style={styles.heroCard}>
         <Card.Content>
@@ -105,7 +147,11 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
             </Chip>
           </View>
           <View style={styles.mapWrapper}>
-            <MapboxGL.MapView style={StyleSheet.absoluteFill} styleURL="mapbox://styles/mapbox/navigation-day-v1">
+            <MapboxGL.MapView
+              style={StyleSheet.absoluteFill}
+              styleURL="mapbox://styles/mapbox/navigation-day-v1"
+              scaleBarEnabled={false}
+            >
               <MapboxGL.Camera
                 zoomLevel={14}
                 centerCoordinate={[centre.lng, centre.lat]}
@@ -155,6 +201,7 @@ const CentreDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navi
         <RouteCard
           key={r.id}
           route={r}
+          mapboxMetrics={routeMetricsById[r.id] || null}
           locked={!canAccess}
           onPress={() => (canAccess ? navigation.navigate('RouteDetail', { route: r, centre }) : setPaywall(true))}
         />

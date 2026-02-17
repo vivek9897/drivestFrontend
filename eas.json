@@ -9,7 +9,13 @@
       "distribution": "internal"
     },
     "preview": {
+      "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "applicationArchivePath": "android/app/build/outputs/apk/release/*-release.apk"
+      },
       "env": {
         "EXPO_PUBLIC_SENTRY_DSN": "https://ee0ecd122d0da39dce34567fd5d88b8f@o4510616324341760.ingest.de.sentry.io/4510622021517392",
         "EXPO_PUBLIC_SENTRY_ENV": "preview",

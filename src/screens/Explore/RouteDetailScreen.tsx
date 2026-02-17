@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiRoutes } from '../../api';
 import { spacing, colors } from '../../styles/theme';
 import { saveDownloadedRoute } from '../../db';
-import { coordsFromGpx, metersToKm, secondsToMinutes } from '../../utils';
+import { coordsFromGpx, getRouteCoords, secondsToMinutes } from '../../utils';
 import MapboxGL from '../../lib/mapbox';
 import { useEntitlements, hasAccessToCentre } from '../../hooks/useEntitlements';
 import PaywallModal from '../../components/PaywallModal';
@@ -42,6 +42,7 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
   const [routeDto, setRouteDto] = useState(initialRoute);
   const [downloading, setDownloading] = useState(false);
   const [matchedRoute, setMatchedRoute] = useState<any>(null);
+  const [mapboxSummary, setMapboxSummary] = useState<{ distanceM: number; durationS: number } | null>(null);
   const isDownloaded = !!routeDto?.downloaded;
   const [paywall, setPaywall] = useState(false);
 
@@ -61,21 +62,28 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
   // Get proper driving route using Directions API
   useEffect(() => {
     const routeRoute = async () => {
-      if (routeDto?.coordinates && Array.isArray(routeDto.coordinates) && routeDto.coordinates.length > 0) {
+      const inputCoords = getRouteCoords(routeDto).map((c) => [c.longitude, c.latitude] as [number, number]);
+      if (inputCoords.length > 0) {
         try {
           const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
           if (!token) {
             logNav.error('ROUTE_DETAIL', 'No Mapbox token configured');
             return;
           }
-          logNav.routeDetailStart(routeDto.id, routeDto.coordinates.length);
-          const routed = await getDirectionsRoute(routeDto.coordinates, token);
+          logNav.routeDetailStart(routeDto.id, inputCoords.length);
+          const routed = await getDirectionsRoute(inputCoords, token);
           if (routed) {
             logNav.routeDetailDirectionsSuccess(
-              routeDto.coordinates.length,
+              inputCoords.length,
               routed.geometry.coordinates.length
             );
             setMatchedRoute(routed);
+            if (routed.distanceM && routed.durationS) {
+              setMapboxSummary({
+                distanceM: routed.distanceM,
+                durationS: routed.durationS,
+              });
+            }
           } else {
             logNav.routeDetailDirectionsFailed('API returned null');
             logNav.routeDetailFallback();
@@ -118,7 +126,7 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
                 Distance
               </Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>
-                {metersToKm(routeDto.distanceM)}
+                {formatMiles(mapboxSummary?.distanceM)}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -126,7 +134,7 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
                 Duration
               </Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>
-                {secondsToMinutes(routeDto.durationEstS)}
+                {mapboxSummary?.durationS ? secondsToMinutes(mapboxSummary.durationS) : '--'}
               </Text>
             </View>
           </View>
@@ -143,7 +151,11 @@ const RouteDetailScreen: React.FC<NativeStackScreenProps<any>> = ({ route, navig
           </View>
           <Divider style={{ marginVertical: spacing(1.5), backgroundColor: colors.border }} />
           <View style={{ height: 240, borderRadius: 14, overflow: 'hidden', borderColor: colors.border, borderWidth: 1 }}>
-            <MapboxGL.MapView style={StyleSheet.absoluteFill} styleURL="mapbox://styles/mapbox/navigation-day-v1">
+            <MapboxGL.MapView
+              style={StyleSheet.absoluteFill}
+              styleURL="mapbox://styles/mapbox/navigation-day-v1"
+              scaleBarEnabled={false}
+            >
               <MapboxGL.Camera
                 bounds={routeDto.bbox ? bboxToBounds(routeDto.bbox) : undefined}
                 zoomLevel={routeDto.bbox ? undefined : 13}
@@ -216,6 +228,12 @@ const styles = StyleSheet.create({
 });
 
 export default RouteDetailScreen;
+
+const formatMiles = (meters?: number) => {
+  if (!meters || !Number.isFinite(meters) || meters <= 0) return '--';
+  const miles = meters / 1609.344;
+  return miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+};
 
 const lineString = (geojsonOrPolyline: any, route: any) => {
   // If geojson is already a proper FeatureCollection with geometry, use it

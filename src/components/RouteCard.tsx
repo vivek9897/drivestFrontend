@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button, Card, Text, Badge } from 'react-native-paper';
+import { Button, Card, Text } from 'react-native-paper';
 import { RouteDto } from '../api';
 import { colors, spacing } from '../styles/theme';
-import { metersToKm, secondsToMinutes } from '../utils';
+import { secondsToMinutes } from '../utils';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Props {
   route: RouteDto;
+  mapboxMetrics?: {
+    distanceM: number;
+    durationS: number;
+  } | null;
   locked: boolean;
   downloaded?: boolean;
   stats?: { timesCompleted?: number; lastCompletedAt?: number };
@@ -15,7 +19,22 @@ interface Props {
   onDownload?: () => void;
 }
 
-const RouteCard: React.FC<Props> = ({ route, locked, downloaded, stats, onPress, onDownload }) => {
+const RouteCard: React.FC<Props> = ({ route, mapboxMetrics, locked, downloaded, stats, onPress, onDownload }) => {
+  const hasMapboxMetrics =
+    !!mapboxMetrics &&
+    Number.isFinite(mapboxMetrics.distanceM) &&
+    Number.isFinite(mapboxMetrics.durationS) &&
+    mapboxMetrics.distanceM > 0 &&
+    mapboxMetrics.durationS > 0;
+  const miles = hasMapboxMetrics ? mapboxMetrics.distanceM / 1609.344 : NaN;
+  const distanceLabel =
+    hasMapboxMetrics
+      ? miles < 10
+        ? `${miles.toFixed(1)} mi`
+        : `${Math.round(miles)} mi`
+      : '--';
+  const durationLabel = hasMapboxMetrics ? secondsToMinutes(mapboxMetrics.durationS) : '--';
+
   return (
     <Card style={styles.card} onPress={onPress} mode="elevated">
       <Card.Content style={{ paddingBottom: spacing(1.5) }}>
@@ -26,22 +45,22 @@ const RouteCard: React.FC<Props> = ({ route, locked, downloaded, stats, onPress,
             </Text>
             <View style={styles.metadataRow}>
               <MaterialCommunityIcons name="directions" size={14} color={colors.primary} />
-              <Text style={styles.metadata}>{metersToKm(route.distanceM)}</Text>
+              <Text style={styles.metadata}>{distanceLabel}</Text>
               <View style={{ width: 4 }} />
               <MaterialCommunityIcons name="clock-outline" size={14} color={colors.primary} />
-              <Text style={styles.metadata}>{secondsToMinutes(route.durationEstS)}</Text>
+              <Text style={styles.metadata}>{durationLabel}</Text>
             </View>
           </View>
           <View style={styles.badgesRow}>
             {locked && (
-              <Badge style={styles.lockedBadge}>
+              <View style={styles.lockedBadge}>
                 <MaterialCommunityIcons name="lock" size={10} color="#fff" />
-              </Badge>
+              </View>
             )}
             {downloaded && (
-              <Badge style={styles.downloadedBadge}>
+              <View style={styles.downloadedBadge}>
                 <MaterialCommunityIcons name="download" size={10} color="#fff" />
-              </Badge>
+              </View>
             )}
           </View>
         </View>
@@ -117,15 +136,19 @@ const styles = StyleSheet.create({
   },
   lockedBadge: {
     backgroundColor: colors.error,
-    fontSize: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   downloadedBadge: {
     backgroundColor: colors.success,
-    fontSize: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsContainer: {
     flexDirection: 'row',

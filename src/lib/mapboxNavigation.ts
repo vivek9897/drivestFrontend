@@ -69,6 +69,7 @@ export type DirectionsRequestOptions = {
   useTraffic?: boolean;
   language?: string;
   voiceUnits?: 'metric' | 'imperial';
+  waypointNames?: Array<string | null | undefined>;
   annotations?: boolean | string[];
   bearing?: BearingsInput | null;
   bearings?: Array<BearingsInput | null | undefined>;
@@ -147,6 +148,9 @@ export function buildDirectionsUrl(
   params.set('voice_units', voiceUnits);
   params.set('language', language);
   params.set('access_token', accessToken);
+
+  const waypointNamesParam = buildWaypointNamesParam(coordsList, options.waypointNames);
+  if (waypointNamesParam) params.set('waypoint_names', waypointNamesParam);
 
   const annotations = buildAnnotationsParam(options);
   if (annotations) params.set('annotations', annotations);
@@ -232,6 +236,19 @@ const getManeuverIconKey = (primary?: BannerText, maneuver?: Maneuver) => {
   if (type === 'exit') return `exit_${modifier || 'straight'}`;
   if (modifier) return modifier;
   return type || 'straight';
+};
+
+const buildWaypointNamesParam = (
+  coordsList: LatLng[],
+  waypointNames?: Array<string | null | undefined>,
+) => {
+  if (!Array.isArray(waypointNames) || waypointNames.length === 0) return '';
+  const names = coordsList.map((_, index) => {
+    const value = waypointNames[index];
+    return typeof value === 'string' ? value.trim() : '';
+  });
+  if (names.every((name) => !name)) return '';
+  return names.join(';');
 };
 
 const buildAnnotationsParam = (options: DirectionsRequestOptions) => {

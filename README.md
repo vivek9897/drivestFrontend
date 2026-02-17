@@ -56,7 +56,7 @@ Drivest is the RouteMaster mobile client for driving test route discovery, pract
 Copy `frontend/.env.example` to `.env` and update:
 - `EXPO_PUBLIC_API_URL` - backend base URL.
 - `EXPO_PUBLIC_MAPBOX_TOKEN` - Mapbox public token (maps + Directions/Matching).
-- `EXPO_PUBLIC_MAPBOX_DOWNLOAD_TOKEN` - Mapbox secret token (offline downloads, if enabled).
+- `MAPBOX_DOWNLOADS_TOKEN` - Mapbox Maven downloads token for Android Gradle dependency resolution.
 - `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` - Google Directions API key for reroute-to-start.
 - `EXPO_PUBLIC_REVCAT_API_KEY` - RevenueCat API key.
 - `EXPO_PUBLIC_ROADSIGNS_BASE_URL` - base URL for road sign images (optional; otherwise placeholders).
@@ -71,6 +71,13 @@ Copy `frontend/.env.example` to `.env` and update:
   - `SENTRY_AUTH_TOKEN` (required for uploads)
   - `SENTRY_ORG` and `SENTRY_PROJECT` (override defaults if needed)
 - For local release builds, ensure `NODE_ENV=production` and optionally set `SENTRY_ALLOW_FAILURE=true` to skip failing uploads.
+
+## Android EAS repository guidance
+- Add `MAPBOX_DOWNLOADS_TOKEN` as an EAS secret/environment variable (Project Settings -> Environment variables) so Gradle can download Mapbox Navigation artifacts.
+- If EAS fails with `Could not parse POM ... Already seen doctype`, rebuild with cache cleared:
+  - `eas build -p android --profile preview --clear-cache`
+  - `eas build -p android --profile development --clear-cache`
+- That error usually means a cached HTML error page was stored as Maven metadata; clearing cache forces a clean dependency fetch.
 
 ## Setup
 1. `cd frontend`

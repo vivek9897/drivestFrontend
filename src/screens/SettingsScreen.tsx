@@ -15,7 +15,7 @@ import { clearLogsAsync, exportLogsAsync, getLogFileUri, logInfo } from '../lib/
 import { logDeviceInfo } from '../utils/navigationLogger';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { isMapboxNavSdkAvailable } from '../components/MapboxNavigationSdkView';
+import { isMapboxNavSdkReady } from '../components/MapboxNavigationSdkView';
 
 const SettingsScreen: React.FC<any> = ({ navigation }) => {
   const { user, logout, refresh, guest } = useAuth();
@@ -67,7 +67,7 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
         osVersion: Platform.Version.toString(),
         appVersion: Constants.expoConfig?.version || 'unknown',
         mapboxToken: !!process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
-        hasNavSDK: isMapboxNavSdkAvailable(),
+        hasNavSDK: isMapboxNavSdkReady(),
       });
       logInfo('LOG_EXPORT', { userId: user?.id, timestamp: new Date().toISOString() });
       
@@ -148,7 +148,7 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
       <Card style={styles.card}>
         <Card.Content style={{ paddingVertical: spacing(2) }}>
           <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Subscription</Text>
-          <View style={{ marginBottom: spacing(1.5), backgroundColor: colors.backgroundAlt, padding: spacing(1.5), borderRadius: 12 }}>
+          <View style={{ marginBottom: spacing(1.5), backgroundColor: colors.surface, padding: spacing(1.5), borderRadius: 12 }}>
             {entitlements.data?.length ? (
               entitlements.data.map((ent) => (
                 <Text key={ent.id} style={{ color: colors.text, fontSize: 13, lineHeight: 18, marginBottom: spacing(0.5) }}>
@@ -329,7 +329,7 @@ const SettingsScreen: React.FC<any> = ({ navigation }) => {
         <Card style={styles.card}>
           <Card.Content style={{ paddingVertical: spacing(2) }}>
             <Text variant="headlineSmall" style={{ fontSize: 20, fontWeight: '700', marginBottom: spacing(1.5) }}>Account</Text>
-            <Button textColor={colors.danger} style={{ borderRadius: 10 }} labelStyle={{ fontSize: 14 }} onPress={onDelete}>
+            <Button textColor={colors.error} style={{ borderRadius: 10 }} labelStyle={{ fontSize: 14 }} onPress={onDelete}>
               Delete Account
             </Button>
             <Button style={{ borderRadius: 10, marginTop: spacing(1) }} labelStyle={{ fontSize: 14 }} onPress={onLogout}>Log Out</Button>

@@ -15,6 +15,12 @@ const LOG_PREFIX = {
   ROUTE_TRACKING: '[RouteTracking]',
   AUDIO: '[Audio]',
   API: '[API]',
+  // Real-time navigation categories for debugging instruction/speech issues
+  INSTRUCTION: '[Instruction]',
+  SPEECH: '[Speech]',
+  SDK_INSTRUCTION: '[SDK_Instruction]',
+  SDK_NAVIGATION: '[SDK_Navigation]',
+  SDK_COMPLETION: '[SDK_Completion]',
 } as const;
 
 type LogCategory = keyof typeof LOG_PREFIX;
