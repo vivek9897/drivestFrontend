@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "id": "chelmsford-city-loop",
+      "name": "City North Loop",
+      "geometry": [
+        { "lat": 51.7534, "lon": 0.4608 },
+        { "lat": 51.764, "lon": 0.4458 },
+        { "lat": 51.76, "lon": 0.4775 },
+        { "lat": 51.7534, "lon": 0.4608 }
+      ],
+      "distanceM": 7800,
+      "durationS": 1200,
+      "startLat": 51.7534,
+      "startLon": 0.4608
+    },
+    {
+      "id": "chelmsford-a414-loop",
+      "name": "A414 East Loop",
+      "geometry": [
+        { "lat": 51.7534, "lon": 0.4608 },
+        { "lat": 51.7442, "lon": 0.4872 },
+        { "lat": 51.7298, "lon": 0.4621 },
+        { "lat": 51.7534, "lon": 0.4608 }
+      ],
+      "distanceM": 8200,
+      "durationS": 1260,
+      "startLat": 51.7534,
+      "startLon": 0.4608
+    }
+  ]
+}

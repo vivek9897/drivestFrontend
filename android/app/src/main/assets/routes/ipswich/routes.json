@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "id": "ipswich-west-loop",
+      "name": "West Ipswich Loop",
+      "geometry": [
+        { "lat": 52.0622, "lon": 1.1429 },
+        { "lat": 52.067, "lon": 1.118 },
+        { "lat": 52.05, "lon": 1.16 },
+        { "lat": 52.0622, "lon": 1.1429 }
+      ],
+      "distanceM": 9100,
+      "durationS": 1380,
+      "startLat": 52.0622,
+      "startLon": 1.1429
+    },
+    {
+      "id": "ipswich-a12-loop",
+      "name": "A12 + Town Return",
+      "geometry": [
+        { "lat": 52.0622, "lon": 1.1429 },
+        { "lat": 52.0748, "lon": 1.1721 },
+        { "lat": 52.0501, "lon": 1.1285 },
+        { "lat": 52.0622, "lon": 1.1429 }
+      ],
+      "distanceM": 9800,
+      "durationS": 1500,
+      "startLat": 52.0622,
+      "startLon": 1.1429
+    }
+  ]
+}

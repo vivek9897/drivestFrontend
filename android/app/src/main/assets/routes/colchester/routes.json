@@ -1,0 +1,46 @@
+{
+  "routes": [
+    {
+      "id": "colchester-hythe-town-loop",
+      "name": "Hythe + Town Loop",
+      "geometry": [
+        { "lat": 51.872116, "lon": 0.928174 },
+        { "lat": 51.8878, "lon": 0.909 },
+        { "lat": 51.8822, "lon": 0.9612 },
+        { "lat": 51.872116, "lon": 0.928174 }
+      ],
+      "distanceM": 8600,
+      "durationS": 1300,
+      "startLat": 51.872116,
+      "startLon": 0.928174
+    },
+    {
+      "id": "colchester-a133-greenstead-loop",
+      "name": "A133 + Greenstead Loop",
+      "geometry": [
+        { "lat": 51.872116, "lon": 0.928174 },
+        { "lat": 51.8785, "lon": 0.9742 },
+        { "lat": 51.9031, "lon": 0.9364 },
+        { "lat": 51.872116, "lon": 0.928174 }
+      ],
+      "distanceM": 9400,
+      "durationS": 1450,
+      "startLat": 51.872116,
+      "startLon": 0.928174
+    },
+    {
+      "id": "colchester-wivenhoe-riverside-loop",
+      "name": "Wivenhoe + Riverside Loop",
+      "geometry": [
+        { "lat": 51.872116, "lon": 0.928174 },
+        { "lat": 51.8559, "lon": 0.9551 },
+        { "lat": 51.8603, "lon": 0.9008 },
+        { "lat": 51.872116, "lon": 0.928174 }
+      ],
+      "distanceM": 8900,
+      "durationS": 1380,
+      "startLat": 51.872116,
+      "startLon": 0.928174
+    }
+  ]
+}

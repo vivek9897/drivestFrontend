@@ -9,7 +9,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest",
-    "generate:icon": "node generate-icon.js"
+    "generate:icon": "node generate-icon.js",
+    "postinstall": "node scripts/clean-expo-android-bin.js"
   },
   "dependencies": {
     "@expo/vector-icons": "15.0.3",

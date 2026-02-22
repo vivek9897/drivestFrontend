@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "id": "norwich-ring-loop",
+      "name": "Inner Ring Loop",
+      "geometry": [
+        { "lat": 52.6377, "lon": 1.338 },
+        { "lat": 52.642, "lon": 1.303 },
+        { "lat": 52.621, "lon": 1.352 },
+        { "lat": 52.6377, "lon": 1.338 }
+      ],
+      "distanceM": 9300,
+      "durationS": 1420,
+      "startLat": 52.6377,
+      "startLon": 1.338
+    },
+    {
+      "id": "norwich-riverside-loop",
+      "name": "Riverside + East Loop",
+      "geometry": [
+        { "lat": 52.6377, "lon": 1.338 },
+        { "lat": 52.6305, "lon": 1.3732 },
+        { "lat": 52.652, "lon": 1.3265 },
+        { "lat": 52.6377, "lon": 1.338 }
+      ],
+      "distanceM": 8700,
+      "durationS": 1340,
+      "startLat": 52.6377,
+      "startLon": 1.338
+    }
+  ]
+}

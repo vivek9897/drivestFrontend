@@ -2,6 +2,7 @@
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -17,6 +18,7 @@
   </queries>
   <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">
     <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyC-UwYLh2SHEW3wZnBMxNaGFILke9kjY1g"/>
+    <meta-data android:name="com.mapbox.token" android:value="@string/mapbox_access_token"/>
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
@@ -33,6 +35,14 @@
         <data android:scheme="exp+drivest-app"/>
       </intent-filter>
     </activity>
+    <activity android:name="com.drivest.navigation.HomeActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.PracticeEntryActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.NavigationEntryActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.DestinationSearchActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.SettingsActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.CentrePickerActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.PracticeRoutesActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
+    <activity android:name="com.drivest.navigation.MainActivity" android:exported="false" android:theme="@style/Theme.DrivestNavigation" />
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
   </application>
 </manifest>

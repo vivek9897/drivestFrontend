@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="speedometer_alert">#DC2626</color>
+    <color name="speedometer_text">#F9FAFB</color>
+    <color name="speedometer_unit">#D1D5DB</color>
+    <color name="speedometer_limit_text_default">#111827</color>
+    <color name="speedometer_limit_text_alert">#FFFFFF</color>
+    <color name="voice_chip_bg_all">#FFFFFF</color>
+    <color name="voice_chip_bg_alerts">#FEF3C7</color>
+    <color name="voice_chip_bg_mute">#FEE2E2</color>
+    <color name="voice_chip_icon_default">#111827</color>
+    <color name="voice_chip_icon_alert">#92400E</color>
+    <color name="voice_chip_icon_mute">#B91C1C</color>
+    <color name="map_control_compass_icon">#111827</color>
+    <color name="map_control_overview_icon">#0EA5E9</color>
+    <color name="map_control_settings_icon">#111827</color>
+    <color name="map_control_voice_icon_all">#2563EB</color>
+</resources>

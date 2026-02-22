@@ -5,12 +5,14 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -121,7 +123,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     private const val PREVIEW_MAX_ZOOM = 18.0
     private const val VOICE_DEDUPE_COOLDOWN_MS = 10_000L
     private const val VOICE_DEDUPE_MAX_ENTRIES = 128
-    private const val MANEUVER_TOP_MARGIN_DP = 0
+    private const val MANEUVER_TOP_MARGIN_DP = 2
     private const val MANEUVER_SIDE_MARGIN_DP = 8
     private const val MANEUVER_HEIGHT_DP = 72
     private const val TRIP_PROGRESS_BOTTOM_MARGIN_DP = 8
@@ -144,7 +146,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     private const val WAY_NAME_MIN_WIDTH_DP = 170
     private const val ROAD_ALERT_MIN_WIDTH_DP = 170
     private const val ROAD_ALERT_SLOW_DOWN_THRESHOLD_M = 120.0
-    private const val FOLLOWING_TOP_PADDING_DP = 320.0
+    private const val FOLLOWING_TOP_PADDING_DP = 360.0
     private const val FOLLOWING_SIDE_PADDING_DP = 36.0
     private const val FOLLOWING_BOTTOM_PADDING_DP = 90.0
     private const val OVERVIEW_TOP_PADDING_DP = 120.0
@@ -152,18 +154,19 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     private const val OVERVIEW_BOTTOM_PADDING_DP = 120.0
     // Google/Waze-like camera behavior: keep a stable cruise zoom on straights,
     // then progressively zoom in as the next maneuver approaches.
-    private const val TURN_ZOOM_PREP_THRESHOLD_M = 240.0
-    private const val TURN_ZOOM_FAR_THRESHOLD_M = 110.0
-    private const val TURN_ZOOM_NEAR_THRESHOLD_M = 38.0
-    private const val TURN_ZOOM_FAR = 17.9
-    private const val TURN_ZOOM_NEAR = 18.65
-    private const val STRAIGHT_ZOOM_SLOW = 17.45
-    private const val STRAIGHT_ZOOM_FAST = 16.95
+    private const val TURN_ZOOM_PREP_THRESHOLD_M = 260.0
+    private const val TURN_ZOOM_FAR_THRESHOLD_M = 120.0
+    private const val TURN_ZOOM_NEAR_THRESHOLD_M = 40.0
+    private const val TURN_ZOOM_FAR = 18.20
+    private const val TURN_ZOOM_NEAR = 18.90
+    private const val STRAIGHT_ZOOM_SLOW = 17.85
+    private const val STRAIGHT_ZOOM_FAST = 17.35
     private const val STRAIGHT_ZOOM_FAST_SPEED_MPS = 31.0
-    private const val FOLLOWING_ZOOM_MIN = 16.9
-    private const val FOLLOWING_ZOOM_MAX = 18.7
+    private const val FOLLOWING_ZOOM_MIN = 17.2
+    private const val FOLLOWING_ZOOM_MAX = 19.0
     private const val FOLLOWING_ZOOM_SMOOTHING = 0.35
     private const val TURN_ZOOM_EPSILON = 0.05
+    private const val FOLLOWING_OVERVIEW_HOLD_MS = 6_000L
     private const val ENABLE_ROAD_INTELLIGENCE_WIDGETS = true
   }
 
@@ -317,6 +320,8 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
   private var activeFollowingZoomOverride: Double? = null
   private var followingCameraPadding: EdgeInsets? = null
   private var overviewCameraPadding: EdgeInsets? = null
+  private var lastManualOverviewRequestAtMs: Long = 0L
+  private var hasLoggedLayerDiagnosticsForStyle: Boolean = false
   private var lastPuckLayerEnsureAtMs: Long = 0L
   private var waitingForLayoutToStartTrip = false
   private var lastLoggedRootWidth: Int = -1
@@ -365,11 +370,6 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
         // Keep camera in stable following mode; avoid periodic forced resets that can
         // cause puck anchoring flicker between center and lower-third.
         requestFollowingCameraIfNeeded()
-        if (isNorthUpLocked) {
-          enforceNorthUpCameraFallback()
-        } else {
-          enforceHeadingUpCameraFallback(locationMatcherResult.enhancedLocation)
-        }
         enforceActiveNavigationUi("location-update")
       } else {
         requestFollowingCameraIfNeeded()
@@ -894,12 +894,16 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
   private fun reloadMapStyle() {
     isStyleLoaded = false
+    hasLoggedLayerDiagnosticsForStyle = false
     mapView.getMapboxMap().loadStyleUri(styleURL) { style ->
       isStyleLoaded = true
       routeLineView.initializeLayers(style)
       ensureLocationPuckAboveRouteLine(force = true)
+      ensureRouteArrowAboveRouteLine(style)
+      logLayerOrderDiagnosticsOnce(style, "style-load")
       updateStoredRouteOverlay()
       applyViewportPadding()
+      reapplyFollowingZoomOverrideIfNeeded()
       pendingRoutes?.let {
         renderNavigationRoutes(it)
         pendingRoutes = null
@@ -1009,6 +1013,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     if (navigationMode == "PREVIEW") {
       isFollowingCameraRequested = false
       isNorthUpLocked = false
+      lastManualOverviewRequestAtMs = 0L
       clearFollowingZoomOverride()
       updatePreviewTripSummary(primaryRoute)
       primaryRoute?.let { renderNativeNavigationWidgetsFromRoute(it) }
@@ -1020,6 +1025,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       previewTripSummaryView.visibility = View.GONE
       primaryRoute?.let { renderNativeNavigationWidgetsFromRoute(it) }
       enforceActiveNavigationUi("mode-change")
+      reapplyFollowingZoomOverrideIfNeeded()
     }
     applyNorthUpGestureLock()
     syncManeuverBannerVisibility("mode-change")
@@ -1609,6 +1615,8 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
         mapView.getMapboxMap().getStyle()?.let { style ->
           routeLineView.renderRouteDrawData(style, drawData)
           ensureLocationPuckAboveRouteLine(force = true)
+          ensureRouteArrowAboveRouteLine(style)
+          logLayerOrderDiagnosticsOnce(style, "preview-route-draw")
         }
       }
       renderNativeNavigationWidgetsFromRoute(previewPrimaryRoute)
@@ -1652,6 +1660,8 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       mapView.getMapboxMap().getStyle()?.let { style ->
         routeLineView.renderRouteDrawData(style, drawData)
         ensureLocationPuckAboveRouteLine(force = true)
+        ensureRouteArrowAboveRouteLine(style)
+        logLayerOrderDiagnosticsOnce(style, "active-route-draw")
       }
     }
 
@@ -1732,6 +1742,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     mapView.getMapboxMap().getStyle()?.let { style ->
       routeArrowView.renderManeuverUpdate(style, arrowUpdate)
       ensureRouteArrowAboveRouteLine(style)
+      logLayerOrderDiagnosticsOnce(style, "route-progress")
     }
 
     try {
@@ -2217,9 +2228,16 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       height > 0 -> height.toDouble()
       else -> resources.displayMetrics.heightPixels.toDouble()
     }
-    // Keep puck near the lower quarter (~70-75% from top), matching turn-by-turn UX.
-    val dynamicFollowingBottom = maxOf(dpToPx(FOLLOWING_BOTTOM_PADDING_DP), viewHeightPx * 0.08)
-    val preferredFollowingTop = maxOf(dpToPx(FOLLOWING_TOP_PADDING_DP), viewHeightPx * 0.62)
+    // Keep puck near the lower quarter (~72-76% from top), matching turn-by-turn UX.
+    val systemBottomInset = resolveSystemBottomInsetPx().toDouble()
+    val activeBottomBannerHeight = resolveActiveBottomBannerHeightPx().toDouble()
+    val bannerClearanceBottom = systemBottomInset + activeBottomBannerHeight + dpToPx(12.0)
+    val dynamicFollowingBottom = maxOf(
+      dpToPx(FOLLOWING_BOTTOM_PADDING_DP),
+      viewHeightPx * 0.10,
+      bannerClearanceBottom
+    )
+    val preferredFollowingTop = maxOf(dpToPx(FOLLOWING_TOP_PADDING_DP), viewHeightPx * 0.68)
     // Guard against invalid effective viewport (observed as massive top padding).
     val maxFollowingTop = maxOf(dpToPx(140.0), viewHeightPx - dynamicFollowingBottom - dpToPx(180.0))
     val dynamicFollowingTop = preferredFollowingTop.coerceAtMost(maxFollowingTop)
@@ -2240,12 +2258,18 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
     viewportDataSource?.followingPadding = followingPadding
     viewportDataSource?.overviewPadding = overviewPadding
+    reapplyFollowingZoomOverrideIfNeeded()
     applyNorthUpViewportOverride()
     viewportDataSource?.evaluate()
     applyCameraPaddingForMode()
   }
 
   private fun applyCameraPaddingForMode() {
+    if (navigationMode != "PREVIEW") {
+      // During active guidance NavigationCamera + viewportDataSource should be the
+      // single camera authority. Direct setCamera padding here causes zoom drift.
+      return
+    }
     val padding =
       if (navigationMode == "PREVIEW") overviewCameraPadding else followingCameraPadding
     if (padding == null) return
@@ -2255,6 +2279,45 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       )
     } catch (_: Exception) {
       // Safe fallback for SDK variants where camera padding is internally controlled.
+    }
+  }
+
+  private fun reapplyFollowingZoomOverrideIfNeeded() {
+    val zoom = activeFollowingZoomOverride ?: return
+    invokeIfPresent(viewportDataSource, "followingZoomPropertyOverride", zoom)
+    invokeIfPresent(viewportDataSource, "followingZoomPropertyOverride", zoom.toFloat())
+    try {
+      viewportDataSource?.evaluate()
+    } catch (_: Exception) {
+      // Ignore optional API mismatch across SDK patch versions.
+    }
+  }
+
+  private fun resolveSystemTopInsetPx(): Int {
+    val insets = rootWindowInsets ?: return 0
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()).top
+    } else {
+      @Suppress("DEPRECATION")
+      insets.systemWindowInsetTop
+    }
+  }
+
+  private fun resolveSystemBottomInsetPx(): Int {
+    val insets = rootWindowInsets ?: return 0
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()).bottom
+    } else {
+      @Suppress("DEPRECATION")
+      insets.systemWindowInsetBottom
+    }
+  }
+
+  private fun resolveActiveBottomBannerHeightPx(): Int {
+    return when {
+      tripProgressView.visibility == View.VISIBLE -> actualRenderedHeight(tripProgressView)
+      previewTripSummaryView.visibility == View.VISIBLE -> actualRenderedHeight(previewTripSummaryView)
+      else -> 0
     }
   }
 
@@ -2844,6 +2907,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
   private fun handleFollowControlTap() {
     // Follow control keeps heading-up tracking by default.
+    lastManualOverviewRequestAtMs = 0L
     isNorthUpLocked = false
     updateFollowControlUiState()
     applyNorthUpViewportOverride()
@@ -2888,11 +2952,6 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     bringNativeOverlaysToFront()
     applyNorthUpViewportOverride()
     applyNorthUpGestureLock()
-    if (isNorthUpLocked) {
-      enforceNorthUpCameraFallback()
-    } else {
-      enforceHeadingUpCameraFallback()
-    }
   }
 
   private fun applyNorthUpViewportOverride() {
@@ -2909,39 +2968,6 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     }
   }
 
-  private fun enforceNorthUpCameraFallback() {
-    if (!isNorthUpLocked) return
-    try {
-      mapView.getMapboxMap().setCamera(
-        CameraOptions.Builder()
-          .bearing(0.0)
-          .build()
-      )
-    } catch (_: Exception) {
-      // Ignore fallback bearing enforcement failures.
-    }
-  }
-
-  private fun enforceHeadingUpCameraFallback(location: Location? = latestEnhancedLocation) {
-    if (isNorthUpLocked) return
-    val liveBearing = extractBearingDeg(location) ?: return
-    try {
-      viewportDataSource?.followingBearingPropertyOverride(liveBearing)
-      viewportDataSource?.evaluate()
-    } catch (_: Exception) {
-      // Keep compatibility across SDK minor versions.
-    }
-    try {
-      mapView.getMapboxMap().setCamera(
-        CameraOptions.Builder()
-          .bearing(liveBearing)
-          .build()
-      )
-    } catch (_: Exception) {
-      // Ignore heading fallback bearing failures.
-    }
-  }
-
   private fun requestFollowingCamera(force: Boolean = false) {
     val camera = navigationCamera ?: return
     if (!force && isFollowingCameraRequested) return
@@ -2954,11 +2980,6 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       updateFollowControlUiState()
       applyNorthUpViewportOverride()
       applyNorthUpGestureLock()
-      if (isNorthUpLocked) {
-        enforceNorthUpCameraFallback()
-      } else if (navigationMode == "TO_START" || navigationMode == "ON_ROUTE") {
-        enforceHeadingUpCameraFallback()
-      }
       return
     } catch (_: Exception) {
       // Fall through to fallback centering.
@@ -2966,14 +2987,16 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
     val location = latestEnhancedLocation ?: return
     val liveBearing = extractBearingDeg(location) ?: 0.0
+    val speedMps = extractSpeedMps(location)?.coerceAtLeast(0.0) ?: 0.0
+    val fallbackFollowZoom = activeFollowingZoomOverride ?: computeStraightCruiseZoom(speedMps)
     val forceNorthUp = isNorthUpLocked
     val bearing = if (forceNorthUp) 0.0 else liveBearing
     try {
       mapView.getMapboxMap().setCamera(
         CameraOptions.Builder()
           .center(Point.fromLngLat(location.longitude, location.latitude))
-          .zoom(16.0)
-          .pitch(45.0)
+          .zoom(fallbackFollowZoom.coerceIn(FOLLOWING_ZOOM_MIN, FOLLOWING_ZOOM_MAX))
+          .pitch(52.0)
           .bearing(bearing)
           .build()
       )
@@ -2982,17 +3005,15 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       updateFollowControlUiState()
       applyNorthUpViewportOverride()
       applyNorthUpGestureLock()
-      if (forceNorthUp) {
-        enforceNorthUpCameraFallback()
-      } else if (navigationMode == "TO_START" || navigationMode == "ON_ROUTE") {
-        enforceHeadingUpCameraFallback(location)
-      }
     } catch (_: Exception) {
       // Keep running even if fallback centering fails.
     }
   }
 
   private fun requestOverviewCamera(force: Boolean = false) {
+    if (navigationMode == "TO_START" || navigationMode == "ON_ROUTE") {
+      lastManualOverviewRequestAtMs = SystemClock.elapsedRealtime()
+    }
     if (navigationMode == "PREVIEW") {
       if (!force && isOverviewCameraRequested) return
       if (applyPreviewHardFitCamera()) {
@@ -3052,12 +3073,10 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
   private fun requestFollowingCameraIfNeeded() {
     if (navigationMode != "TO_START" && navigationMode != "ON_ROUTE") return
-    requestFollowingCamera(force = false)
-    if (isNorthUpLocked) {
-      enforceNorthUpCameraFallback()
-    } else {
-      enforceHeadingUpCameraFallback()
+    if (SystemClock.elapsedRealtime() - lastManualOverviewRequestAtMs < FOLLOWING_OVERVIEW_HOLD_MS) {
+      return
     }
+    requestFollowingCamera(force = false)
   }
 
   private fun applyPreviewHardFitCamera(): Boolean {
@@ -3421,10 +3440,8 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     val hasNativeContent =
       shouldShowNativeBanner &&
         isActuallyVisibleOnScreen(maneuverView) &&
-        (
-          nativeManeuverCount > 0 ||
-            maneuverView.childCount > 0
-          )
+        actualRenderedWidth(maneuverView) > 0 &&
+        actualRenderedHeight(maneuverView) > 0
     if (hasNativeContent) {
       fallbackManeuverBannerView.visibility = View.GONE
       lastLoggedFallbackBannerVisibility = false
@@ -3461,6 +3478,7 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     }
     ensureManeuverBannerLayout()
     ensureBottomBannerLayout()
+    applyViewportPadding()
     maneuverView.requestLayout()
     fallbackManeuverBannerView.requestLayout()
     tripProgressView.requestLayout()
@@ -3506,28 +3524,11 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     if (!isStyleLoaded) return
 
     val style = mapView.getMapboxMap().getStyle() ?: return
-
-    // Route-line layer names can vary by SDK patch. Keep an ordered list from
-    // lower-priority to higher-priority route layers and place the puck above all.
-    val preferredRouteLayers = listOf(
-      "mapbox-navigation-route-line-traversed-layer",
-      "mapbox-navigation-route-line-trail-layer",
-      "mapbox-navigation-route-line-casing",
-      "mapbox-navigation-route-line-casing-layer",
-      "mapbox-navigation-route-line-main",
-      ACTIVE_ROUTE_LAYER_ID,
-      "mapbox-navigation-route-line-main-layer",
-      "mapbox-navigation-route-line-traffic-layer",
-      "mapbox-navigation-route-line-restricted-section-layer",
-      "mapbox-navigation-route-line-alternative-layer",
-      "mapbox-navigation-route-line-alternative-casing-layer"
-    )
-    val existingRouteLayers = preferredRouteLayers.filter { layerId -> styleHasLayer(style, layerId) }
-    if (existingRouteLayers.isEmpty()) {
+    val topRouteLayer = resolveTopRouteLayerId(style)
+    if (topRouteLayer.isNullOrBlank()) {
       Log.d(TAG, "Location puck layering skipped: no route layer found in current style")
       return
     }
-    val topRouteLayer = existingRouteLayers.last()
 
     invokeIfPresent(mapView.location, "setLayerAbove", topRouteLayer)
     invokeIfPresent(mapView.location, "layerAbove", topRouteLayer)
@@ -3535,6 +3536,73 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     // Compatibility fallback: some Maps SDK builds ignore location-component
     // layerAbove calls for custom route-line stacks, so explicitly move
     // known location indicator layers above the active route layer.
+    val staticLocationLayerCandidates = listOf(
+      "mapbox-location-layer",
+      "mapbox-location-bearing-layer",
+      "mapbox-location-shadow-layer",
+      "mapbox-location-stroke-layer",
+      "mapbox-location-indicator-layer",
+      "mapbox-location-indicator-bearing-layer",
+      "mapbox-location-indicator-shadow-layer",
+      "mapbox-location-indicator-stroke-layer",
+      "mapbox-location-puck-layer",
+      "mapbox-location-puck-bearing-layer",
+      "mapbox-location-puck-shadow-layer"
+    )
+    val dynamicLocationLayerCandidates =
+      getStyleLayerIds(style).filter { layerId ->
+        val lower = layerId.lowercase(Locale.US)
+        (lower.contains("location") || lower.contains("puck")) &&
+          (
+            lower.contains("indicator") ||
+              lower.contains("puck") ||
+              lower.contains("bearing") ||
+              lower.contains("shadow") ||
+              lower.contains("stroke")
+            )
+      }
+    val locationLayerCandidates =
+      (staticLocationLayerCandidates + dynamicLocationLayerCandidates).distinct()
+    locationLayerCandidates.forEach { locationLayer ->
+      if (!styleHasLayer(style, locationLayer)) return@forEach
+      moveStyleLayerAbove(style, locationLayer, topRouteLayer)
+    }
+    logLayerOrderDiagnosticsOnce(style, "puck-layering")
+  }
+
+  private fun ensureRouteArrowAboveRouteLine(style: Style) {
+    val routeLayer = resolveTopRouteLayerId(style) ?: return
+
+    val staticArrowLayerCandidates = listOf(
+      "mapbox-navigation-arrow-shaft-layer",
+      "mapbox-navigation-arrow-head-layer",
+      "mapbox-navigation-arrow-shaft-casing-layer",
+      "mapbox-navigation-arrow-head-casing-layer",
+      "mapbox-navigation-route-arrow-shaft-layer",
+      "mapbox-navigation-route-arrow-head-layer",
+      "mapbox-navigation-route-arrow-shaft-casing-layer",
+      "mapbox-navigation-route-arrow-head-casing-layer"
+    )
+    val dynamicArrowLayerCandidates =
+      getStyleLayerIds(style).filter { layerId ->
+        val lower = layerId.lowercase(Locale.US)
+        lower.contains("arrow") &&
+          (lower.contains("mapbox-navigation") || lower.contains("navigation"))
+      }
+    val arrowLayerCandidates = (staticArrowLayerCandidates + dynamicArrowLayerCandidates).distinct()
+
+    arrowLayerCandidates.forEach { arrowLayer ->
+      if (!styleHasLayer(style, arrowLayer)) return@forEach
+      moveStyleLayerAbove(style, arrowLayer, routeLayer)
+    }
+    logLayerOrderDiagnosticsOnce(style, "arrow-layering")
+  }
+
+  private fun logLayerOrderDiagnosticsOnce(style: Style, source: String) {
+    if (hasLoggedLayerDiagnosticsForStyle) return
+
+    val routeLayer = resolveTopRouteLayerId(style) ?: "none"
+
     val locationLayerCandidates = listOf(
       "mapbox-location-layer",
       "mapbox-location-bearing-layer",
@@ -3548,22 +3616,6 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       "mapbox-location-puck-bearing-layer",
       "mapbox-location-puck-shadow-layer"
     )
-    existingRouteLayers.forEach { routeLayer ->
-      locationLayerCandidates.forEach { locationLayer ->
-        if (!styleHasLayer(style, locationLayer)) return@forEach
-        moveStyleLayerAbove(style, locationLayer, routeLayer)
-      }
-    }
-  }
-
-  private fun ensureRouteArrowAboveRouteLine(style: Style) {
-    val routeLayer = listOf(
-      ACTIVE_ROUTE_LAYER_ID,
-      "mapbox-navigation-route-line-main",
-      "mapbox-navigation-route-line-main-layer",
-      "mapbox-navigation-route-line-casing-layer"
-    ).firstOrNull { layerId -> styleHasLayer(style, layerId) } ?: return
-
     val arrowLayerCandidates = listOf(
       "mapbox-navigation-arrow-shaft-layer",
       "mapbox-navigation-arrow-head-layer",
@@ -3574,11 +3626,69 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
       "mapbox-navigation-route-arrow-shaft-casing-layer",
       "mapbox-navigation-route-arrow-head-casing-layer"
     )
+    val presentLocationLayers = locationLayerCandidates.filter { styleHasLayer(style, it) }
+    val presentArrowLayers = arrowLayerCandidates.filter { styleHasLayer(style, it) }
+    hasLoggedLayerDiagnosticsForStyle = true
+    Log.i(
+      TAG,
+      "Layer order diagnostics[$source]: route=$routeLayer location=${presentLocationLayers.joinToString(",")} arrow=${presentArrowLayers.joinToString(",")}"
+    )
+  }
 
-    arrowLayerCandidates.forEach { arrowLayer ->
-      if (!styleHasLayer(style, arrowLayer)) return@forEach
-      moveStyleLayerAbove(style, arrowLayer, routeLayer)
+  private fun resolveTopRouteLayerId(style: Style): String? {
+    // Prefer actual style render order when available so we can consistently move
+    // puck/arrow above the real top-most route layer.
+    val styleOrderedRouteLayers =
+      getStyleLayerIds(style).filter { layerId ->
+        layerId.lowercase(Locale.US).contains("mapbox-navigation-route-line")
+      }
+    if (styleOrderedRouteLayers.isNotEmpty()) {
+      return styleOrderedRouteLayers.last()
     }
+
+    // Fallback for SDK variants where style layer enumeration is unavailable.
+    return listOf(
+      "mapbox-navigation-route-line-traversed-layer",
+      "mapbox-navigation-route-line-trail-layer",
+      "mapbox-navigation-route-line-casing",
+      "mapbox-navigation-route-line-casing-layer",
+      "mapbox-navigation-route-line-main",
+      ACTIVE_ROUTE_LAYER_ID,
+      "mapbox-navigation-route-line-main-layer",
+      "mapbox-navigation-route-line-traffic-layer",
+      "mapbox-navigation-route-line-restricted-section-layer",
+      "mapbox-navigation-route-line-alternative-layer",
+      "mapbox-navigation-route-line-alternative-casing-layer"
+    ).filter { layerId -> styleHasLayer(style, layerId) }.lastOrNull()
+  }
+
+  private fun getStyleLayerIds(style: Style): List<String> {
+    val layerContainers = sequenceOf(
+      readProperty(style, "styleLayers"),
+      readProperty(style, "layers"),
+      readProperty(style, "getStyleLayers"),
+      readProperty(style, "getLayers")
+    )
+
+    val layerIds = ArrayList<String>()
+    fun appendLayerIdFrom(layerObj: Any?) {
+      if (layerObj == null) return
+      val id =
+        (readProperty(layerObj, "id") as? String)
+          ?: (readProperty(layerObj, "layerId") as? String)
+          ?: (readProperty(layerObj, "getLayerId") as? String)
+      if (!id.isNullOrBlank() && layerIds.none { it == id }) {
+        layerIds.add(id)
+      }
+    }
+
+    layerContainers.forEach { container ->
+      when (container) {
+        is Iterable<*> -> container.forEach { layerObj -> appendLayerIdFrom(layerObj) }
+        is Array<*> -> container.forEach { layerObj -> appendLayerIdFrom(layerObj) }
+      }
+    }
+    return layerIds
   }
 
   private fun moveStyleLayerAbove(style: Style, layerId: String, anchorLayerId: String) {
@@ -3660,7 +3770,10 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
   private fun ensureManeuverBannerLayout() {
     val expectedHeight = dpToPxInt(MANEUVER_HEIGHT_DP.toDouble())
     val sideMargin = dpToPxInt(MANEUVER_SIDE_MARGIN_DP.toDouble())
-    val topMargin = dpToPxInt(MANEUVER_TOP_MARGIN_DP.toDouble())
+    val topMargin = maxOf(
+      dpToPxInt(MANEUVER_TOP_MARGIN_DP.toDouble()),
+      resolveSystemTopInsetPx() + dpToPxInt(4.0)
+    )
     val rootWidth = currentRootWidth()
     val targetWidth =
       if (rootWidth > 0) {
@@ -3731,7 +3844,11 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
 
   private fun ensureBottomBannerLayout() {
     val sideMargin = dpToPxInt(TRIP_PROGRESS_SIDE_MARGIN_DP.toDouble())
-    val bottomMargin = dpToPxInt(TRIP_PROGRESS_BOTTOM_MARGIN_DP.toDouble())
+    val baseBottomMargin = maxOf(
+      dpToPxInt(TRIP_PROGRESS_BOTTOM_MARGIN_DP.toDouble()),
+      resolveSystemBottomInsetPx() + dpToPxInt(2.0)
+    )
+    val bottomMargin = resolveBottomBannerMarginPx(baseBottomMargin)
     val expectedMinHeight = dpToPxInt(TRIP_PROGRESS_MIN_HEIGHT_DP.toDouble())
     val rootWidth = currentRootWidth()
     val targetWidth =
@@ -3803,6 +3920,30 @@ class DrivestNavigationView(private val reactContext: ReactContext) : FrameLayou
     if (previewChanged || previewTripSummaryView.layoutParams == null) {
       previewTripSummaryView.layoutParams = previewLayout
     }
+  }
+
+  private fun resolveBottomBannerMarginPx(baseBottomMargin: Int): Int {
+    val rootH = currentRootHeight()
+    val rootW = currentRootWidth()
+    if (rootH <= 0 || rootW <= 0) return baseBottomMargin
+    if (navigationMode != "TO_START" && navigationMode != "ON_ROUTE") return baseBottomMargin
+
+    val followingBottom = followingCameraPadding?.bottom?.roundToInt() ?: dpToPxInt(FOLLOWING_BOTTOM_PADDING_DP)
+    val estimatedPuckY = rootH - followingBottom
+    val estimatedBannerHeight =
+      maxOf(
+        actualRenderedHeight(tripProgressView),
+        actualRenderedHeight(previewTripSummaryView),
+        dpToPxInt(TRIP_PROGRESS_MIN_HEIGHT_DP.toDouble())
+      )
+    val minimumGap = dpToPxInt(16.0)
+    val requiredBannerTop = estimatedPuckY + minimumGap
+    val maxAllowedBottomMargin = rootH - requiredBannerTop - estimatedBannerHeight
+    val minBottomInset = resolveSystemBottomInsetPx() + dpToPxInt(2.0)
+    if (maxAllowedBottomMargin <= minBottomInset) {
+      return minBottomInset
+    }
+    return maxOf(minBottomInset, minOf(baseBottomMargin, maxAllowedBottomMargin))
   }
 
   private fun hideViewsByClassToken(root: View, classTokens: List<String>) {

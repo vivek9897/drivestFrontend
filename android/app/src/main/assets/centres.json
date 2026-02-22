@@ -1,0 +1,37 @@
+[
+  {
+    "id": "colchester",
+    "name": "Colchester Driving Test Centre",
+    "address": "Grange Way, Colchester CO2 8HF",
+    "lat": 51.872116,
+    "lon": 0.928174
+  },
+  {
+    "id": "chelmsford",
+    "name": "Chelmsford Driving Test Centre",
+    "address": "Hanbury Road, Chelmsford CM1 3AE",
+    "lat": 51.7534,
+    "lon": 0.4608
+  },
+  {
+    "id": "ipswich",
+    "name": "Ipswich Driving Test Centre",
+    "address": "Wentworth Road, Ipswich IP1 5PD",
+    "lat": 52.0622,
+    "lon": 1.1429
+  },
+  {
+    "id": "norwich",
+    "name": "Norwich Peachman Way Test Centre",
+    "address": "Peachman Way, Norwich NR7 0WF",
+    "lat": 52.6377,
+    "lon": 1.338
+  },
+  {
+    "id": "basildon",
+    "name": "Basildon (Pitsea) Driving Test Centre",
+    "address": "Paycocke Road, Basildon SS14 3EA",
+    "lat": 51.575,
+    "lon": 0.506
+  }
+]

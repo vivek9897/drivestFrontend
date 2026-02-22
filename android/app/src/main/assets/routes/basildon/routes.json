@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "id": "basildon-pitsea-loop",
+      "name": "Pitsea + Town Loop",
+      "geometry": [
+        { "lat": 51.575, "lon": 0.506 },
+        { "lat": 51.583, "lon": 0.475 },
+        { "lat": 51.566, "lon": 0.528 },
+        { "lat": 51.575, "lon": 0.506 }
+      ],
+      "distanceM": 7600,
+      "durationS": 1160,
+      "startLat": 51.575,
+      "startLon": 0.506
+    },
+    {
+      "id": "basildon-a127-loop",
+      "name": "A127 Return Loop",
+      "geometry": [
+        { "lat": 51.575, "lon": 0.506 },
+        { "lat": 51.5685, "lon": 0.4545 },
+        { "lat": 51.5538, "lon": 0.5004 },
+        { "lat": 51.575, "lon": 0.506 }
+      ],
+      "distanceM": 8400,
+      "durationS": 1280,
+      "startLat": 51.575,
+      "startLon": 0.506
+    }
+  ]
+}
